@@ -10,6 +10,7 @@
     camera: { x: CFG.worldSize / 2, y: CFG.worldSize / 2, scale: 1 },
     _lerp: new Map(),       // id -> {x,y} eased draw positions
     _fx: [],                // transient visual effects (split/merge/pop rings)
+    _feed: [],              // short combat/event messages
       _skins: new Map(),      // url -> HTMLImageElement cache for cell skins
 };
 
@@ -122,6 +123,7 @@
     if (G.settings.minimap) this._minimap(snap);
     this._skillbar(snap);
     this._hud(snap);
+    this._feedPanel(dt);
   };
 
   Render._grid = function (ctx) {
@@ -206,9 +208,14 @@
   Render._spawnFx = function (events) {
     if (!events) return;
     for (const ev of events) {
-      if (ev.type === 'split') this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 2.6, age: 0, ttl: 0.40, color: ev.color });
-      else if (ev.type === 'merge') this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 1.9, r1: ev.r * 0.6, age: 0, ttl: 0.40, color: ev.color, flash: true });
-      else if (ev.type === 'pop') for (let i = 0; i < 3; i++) this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * (2.4 + i), age: -i * 0.06, ttl: 0.55, color: ev.color });
+      let msg = null;
+      if (ev.type === 'split') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 2.6, age: 0, ttl: 0.40, color: ev.color }); msg = 'Split burst'; }
+      else if (ev.type === 'merge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 1.9, r1: ev.r * 0.6, age: 0, ttl: 0.40, color: ev.color, flash: true }); msg = 'Cells merged'; }
+      else if (ev.type === 'pop') { for (let i = 0; i < 3; i++) this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * (2.4 + i), age: -i * 0.06, ttl: 0.55, color: ev.color }); msg = 'Virus pop'; }
+      if (msg && (!this._feed.length || this._feed[this._feed.length - 1].text !== msg || this._feed[this._feed.length - 1].age > 0.5)) {
+        this._feed.push({ text: msg, age: 0, ttl: 3.2 });
+        if (this._feed.length > 6) this._feed.shift();
+      }
     }
   };
   Render._drawFx = function (ctx, dt) {
@@ -346,5 +353,30 @@
     ctx.restore();
   };
 
+
+  Render._feedPanel = function (dt) {
+    if (!this._feed.length) return;
+    const ctx = this.ctx, mobile = this.w < 760;
+    for (const f of this._feed) f.age += dt;
+    this._feed = this._feed.filter((f) => f.age < f.ttl);
+    if (!this._feed.length) return;
+    const rows = this._feed.slice(mobile ? -3 : -5);
+    const x = mobile ? 10 : 14;
+    const bottom = mobile ? this.h - 60 : this.h - 16;
+    const rowH = mobile ? 17 : 20;
+    const w = mobile ? 142 : 184;
+    const h = rows.length * rowH + 10;
+    const y = bottom - h;
+    ctx.save();
+    ctx.fillStyle = 'rgba(37,37,37,0.42)'; this._round(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.font = (mobile ? '600 10.5px ' : '600 12px ') + '"Microsoft YaHei", sans-serif';
+    rows.forEach((f, i) => {
+      const a = Math.max(0, Math.min(1, 1 - Math.max(0, f.age - (f.ttl - 0.7)) / 0.7));
+      ctx.fillStyle = 'rgba(245,245,245,' + (0.45 + 0.45 * a).toFixed(2) + ')';
+      ctx.fillText(f.text, x + 9, y + 19 + i * rowH);
+    });
+    ctx.restore();
+  };
   G.Render = Render;
 })(window.G);

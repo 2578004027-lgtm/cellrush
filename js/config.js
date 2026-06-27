@@ -26,8 +26,10 @@ G.CFG = {
   // split (Space)
   splitMin: 35,
   splitImpulse: 820,         // minimum launch speed of the new piece (world u/s)
-  splitLaunchRadii: 3.8,     // large cells launch about this many own radii forward
-  splitImpulseMax: 4800,     // cap radius-scaled split speed
+  splitLaunchRadii: 4.4,     // large cells launch about this many own radii forward
+  splitImpulseMax: 12000,    // cap radius-scaled split speed
+  splitStartSeparation: 2.15, // immediate center distance in radii after splitting
+  splitBackPush: 0.35,       // how much the old half is pushed backward on split
   mergeBase: 6,              // base seconds before split pieces may re-merge
   mergePerCell: 2.0,         // + (cell count) * this  -> more splits = longer to recombine
   mergePerMass: 0.0,         // (kept for reference; merge time is now driven by split count)
