@@ -509,7 +509,7 @@
         cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass;
         const r = radius(c.mass);
         if (inView(c.x, c.y, r))
-          out.cells.push({ id: c.id, x: c.x, y: c.y, r, mass: c.mass, color: p.color.css, dark: p.color.dark, skin: p.skin || '',
+          out.cells.push({ id: c.id, x: c.x, y: c.y, vx: c.vx || 0, vy: c.vy || 0, r, mass: c.mass, color: p.color.css, dark: p.color.dark, skin: p.skin || '',
             name: p.name, isMe: p.id === playerId,
             shield: w.time < (p.fx.shield || 0), admin: p.admin, dashing: w.time < (p.fx.dash || 0),
             mergeIn: (p.id === playerId && p.cells.length > 1) ? Math.max(0, c.mergeAt - w.time) : 0,

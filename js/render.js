@@ -11,7 +11,8 @@
     _lerp: new Map(),       // id -> {x,y} eased draw positions
     _fx: [],                // transient visual effects (split/merge/pop rings)
     _feed: [],              // short combat/event messages
-      _skins: new Map(),      // url -> HTMLImageElement cache for cell skins
+    _squeeze: new Map(),
+    _skins: new Map(),      // url -> HTMLImageElement cache for cell skins
 };
 
   Render.init = function (canvas) {
@@ -128,7 +129,7 @@
     const stack = snap.cells.slice();
     for (const v of snap.viruses) { v._isVirus = true; stack.push(v); }
     stack.sort((a, b) => (a.mass || 0) - (b.mass || 0));
-    const squeeze = G.settings.visualSqueeze ? this._squeezeMap(stack) : null;
+    const squeeze = G.settings.visualSqueeze ? this._squeezeMap(stack, dt) : null;
     for (const o of stack) { if (o._isVirus) this._virus(ctx, o); else this._cell(ctx, o, squeeze && squeeze.get(o.id)); }
     this._spawnFx(snap.events); this._drawFx(ctx, dt);
 
@@ -207,34 +208,53 @@
     ctx.restore();
   };
 
-  Render._squeezeMap = function (stack) {
+  Render._squeezeMap = function (stack, dt) {
     const cells = stack.filter((c) => !c._isVirus && c.r > 8);
-    const out = new Map();
+    const targets = new Map(), seen = new Set();
+    for (const c of cells) seen.add(c.id);
     for (let i = 0; i < cells.length; i++) {
       const a = cells[i];
       for (let j = i + 1; j < cells.length; j++) {
         const b = cells[j];
         const dx = b.x - a.x, dy = b.y - a.y;
         const d = Math.hypot(dx, dy) || 0.001;
-        const near = (a.r + b.r) * 1.02;
+        const near = (a.r + b.r) * 1.06;
         if (d >= near) continue;
-        const amt = U.clamp((near - d) / Math.max(12, Math.min(a.r, b.r)), 0, 0.18);
+        const pressure = U.clamp((near - d) / Math.max(10, Math.min(a.r, b.r) * 0.9), 0, 1);
+        const rel = Math.hypot((a.vx || 0) - (b.vx || 0), (a.vy || 0) - (b.vy || 0));
+        const amt = U.clamp(pressure * 0.22 + Math.min(0.08, rel / 9000), 0, 0.28);
         const ang = Math.atan2(dy, dx);
         const put = (c, angle) => {
-          const old = out.get(c.id);
-          if (!old || amt > old.amt) out.set(c.id, { amt, angle });
+          const old = targets.get(c.id);
+          if (!old || amt > old.amt) targets.set(c.id, { amt, angle });
         };
         put(a, ang); put(b, ang + Math.PI);
       }
     }
+    const out = new Map();
+    const step = Math.min(0.05, Math.max(0.001, dt || 1 / 60));
+    for (const c of cells) {
+      const prev = this._squeeze.get(c.id) || { amt: 0, vel: 0, angle: 0, wobble: 0 };
+      const target = targets.get(c.id) || { amt: 0, angle: prev.angle };
+      const accel = (target.amt - prev.amt) * 80 - prev.vel * 12;
+      const vel = prev.vel + accel * step;
+      const amt = U.clamp(prev.amt + vel * step, 0, 0.32);
+      const angle = target.amt > 0.01 ? target.angle : prev.angle;
+      const wobble = (prev.wobble || 0) + step * (target.amt > 0.01 ? 18 : 10);
+      const sq = { amt, vel, angle, wobble };
+      this._squeeze.set(c.id, sq);
+      if (amt > 0.006 || Math.abs(vel) > 0.01) out.set(c.id, sq);
+    }
+    for (const id of this._squeeze.keys()) if (!seen.has(id)) this._squeeze.delete(id);
     return out;
   };
 
   Render._cell = function (ctx, c, sq) {
     ctx.beginPath();
     if (sq && sq.amt > 0.01) {
+      const pulse = 1 + Math.sin(sq.wobble || 0) * sq.amt * 0.10;
       ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(sq.angle);
-      ctx.ellipse(0, 0, c.r * (1 - sq.amt), c.r * (1 + sq.amt * 0.55), 0, 0, U.TAU);
+      ctx.ellipse(0, 0, c.r * (1 - sq.amt * 0.95), c.r * (1 + sq.amt * 0.62) * pulse, 0, 0, U.TAU);
       ctx.restore();
     } else ctx.arc(c.x, c.y, c.r, 0, U.TAU);
     ctx.fillStyle = c.color; ctx.fill();
