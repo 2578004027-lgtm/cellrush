@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>CellRush · 细胞乱斗</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- start menu -->
+<div id="menu" class="overlay">
+  <div class="panel">
+    <h1>CellRush <span>细胞乱斗</span></h1>
+    <p class="tag">吞噬一切,成为最大的细胞</p>
+    <input id="name" maxlength="14" placeholder="输入昵称" autocomplete="off" spellcheck="false" />
+    <div class="skins-label">选个颜色</div>
+    <div id="skins" class="skins"></div>
+    <button id="play" class="btn">开始游戏</button>
+    <div id="neterr" class="neterr hidden"></div>
+    <div class="help"><b>鼠标</b>移动 · <b>空格</b>分裂 · <b>W</b>吐质量 · <b>Q/E/R/F</b>技能</div>
+  </div>
+</div>
+
+<!-- death / respawn -->
+<div id="death" class="overlay hidden">
+  <div class="panel">
+    <h2>你被吞噬了 💀</h2>
+    <div id="death-stats" class="stats"></div>
+    <button id="respawn" class="btn">再来一局</button>
+  </div>
+</div>
+
+<!-- in-game settings (gear / Esc) -->
+<button id="gear" title="设置 (Esc)">⚙</button>
+<div id="settings" class="overlay hidden">
+  <div class="panel">
+    <h2>设置</h2>
+    <label class="row"><span>音效</span><input type="checkbox" id="set-sound" /></label>
+    <label class="row"><span>显示名字</span><input type="checkbox" id="set-names" /></label>
+    <label class="row"><span>显示小地图</span><input type="checkbox" id="set-minimap" /></label>
+    <label class="row"><span>管理员模式 <small>无敌 · 吃任何东西 · [ ] 增减质量</small></span><input type="checkbox" id="set-admin" /></label>
+    <div class="set-help">技能键 &nbsp; <b>Q</b> 冲刺 &nbsp; <b>E</b> 护盾 &nbsp; <b>R</b> 磁吸</div>
+    <button id="resume" class="btn">继续游戏</button>
+    <button id="tomenu" class="btn ghost">返回主菜单</button>
+  </div>
+</div>
+
+<!-- scripts: classic tags, load order matters (no ES modules -> runs on file:// and any host) -->
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/world.js"></script>
+<script src="js/input.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/transport-net.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

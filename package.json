@@ -1,0 +1,12 @@
+{
+  "name": "cellrush",
+  "version": "1.0.0",
+  "description": "CellRush — an agar.io-style online game (authoritative Node server + static client).",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

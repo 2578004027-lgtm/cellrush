@@ -1,0 +1,66 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: #0d1020;
+  font-family: -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  color: #e7ecff; user-select: none; }
+#game { position: fixed; inset: 0; display: block; cursor: crosshair; }
+
+/* overlays */
+.overlay { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(120% 120% at 50% 30%, rgba(40,52,110,.55), rgba(8,10,22,.88)); backdrop-filter: blur(2px); }
+.overlay.hidden { display: none; }
+
+.panel { width: min(92vw, 380px); padding: 30px 28px; text-align: center;
+  background: rgba(18,22,44,.92); border: 1px solid #2c3568; border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.6); }
+.panel h1 { font-size: 38px; letter-spacing: 2px; font-weight: 800;
+  background: linear-gradient(90deg,#7CFFB0,#6c9bff,#b98cff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.panel h1 span { font-size: 17px; letter-spacing: 4px; color: #9fb0e0; -webkit-text-fill-color: #9fb0e0; display: block; margin-top: 2px; }
+.panel h2 { font-size: 26px; margin-bottom: 14px; color: #ff8aa0; }
+.tag { color: #9aa6d6; font-size: 14px; margin: 10px 0 20px; }
+
+#name { width: 100%; padding: 13px 16px; font-size: 16px; text-align: center; color: #fff;
+  background: #0e1230; border: 1px solid #313c72; border-radius: 12px; outline: none; }
+#name:focus { border-color: #6c9bff; box-shadow: 0 0 0 3px rgba(108,155,255,.2); }
+
+.skins-label { margin: 18px 0 8px; font-size: 12px; color: #8493c4; }
+.skins { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; margin-bottom: 22px; }
+.swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform .12s; }
+.swatch:hover { transform: scale(1.15); }
+.swatch.sel { border-color: #fff; transform: scale(1.15); }
+
+.btn { width: 100%; padding: 14px; font-size: 17px; font-weight: 700; letter-spacing: 2px; color: #08122a; cursor: pointer;
+  background: linear-gradient(135deg,#7CFFB0,#5fd0ff); border: none; border-radius: 12px; transition: transform .12s, filter .12s; }
+.btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.btn:active { transform: translateY(0); }
+
+.help { margin-top: 18px; font-size: 12px; color: #7a88b8; }
+.help b { color: #c7d2ff; }
+
+.neterr { color: #ff8aa0; font-size: 13px; margin-top: 14px; line-height: 1.5; }
+.neterr.hidden { display: none; }
+
+.stats { font-size: 15px; line-height: 2; color: #cdd6ff; margin-bottom: 20px; }
+.stats b { color: #7CFFB0; font-size: 19px; }
+
+/* in-game settings */
+#gear { position: fixed; left: 14px; top: 12px; z-index: 9; width: 42px; height: 42px; font-size: 22px; line-height: 42px;
+  text-align: center; color: #cdd6ff; background: rgba(18,22,44,.7); border: 1px solid #2c3568; border-radius: 12px; cursor: pointer;
+  transition: transform .2s, background .2s; }
+#gear:hover { background: rgba(40,50,100,.9); transform: rotate(45deg); }
+#settings .panel { text-align: left; width: min(94vw, 420px); }
+#settings h2 { color: #7CFFB0; text-align: center; margin-bottom: 6px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 12px 4px; border-bottom: 1px solid #232a52; font-size: 15px; cursor: pointer; }
+.row small { display: block; color: #7a88b8; font-size: 11px; margin-top: 3px; }
+.row input[type=checkbox] { width: 46px; height: 25px; appearance: none; -webkit-appearance: none; background: #2a3157;
+  border-radius: 14px; position: relative; cursor: pointer; transition: background .15s; flex: none; }
+.row input[type=checkbox]::after { content: ''; position: absolute; width: 19px; height: 19px; border-radius: 50%;
+  background: #fff; top: 3px; left: 3px; transition: left .15s; }
+.row input[type=checkbox]:checked { background: #4caf7d; }
+.row input[type=checkbox]:checked::after { left: 24px; }
+.set-help { margin: 16px 0; font-size: 13px; color: #9aa6d6; text-align: center; }
+.set-help b { color: #c7d2ff; }
+.btn.ghost { background: transparent; border: 1px solid #3a4680; color: #aeb8e6; }
+.btn.ghost:hover { background: rgba(60,72,140,.4); filter: none; }
+.btn + .btn { margin-top: 10px; }
+
