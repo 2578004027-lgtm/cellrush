@@ -39,7 +39,7 @@
       if (playing && snap.me && !camInit) { G.Render.centerOn(snap.me.x, snap.me.y); G.Render.camera.scale = 1; camInit = true; }
       G.Render.frame(snap, dt, input);
       frames++; fpsAcc += dt;
-      if (fpsAcc > 0.5) { if (fpsEl) fpsEl.textContent = Math.round(frames / fpsAcc) + ' fps'; frames = 0; fpsAcc = 0; }
+      if (fpsAcc > 0.5) { G.Render.fps = Math.round(frames / fpsAcc); frames = 0; fpsAcc = 0; }
     } else {
       G.Render.clear();
     }

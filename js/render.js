@@ -19,7 +19,7 @@
     window.addEventListener('resize', () => this.resize());
   };
   Render.resize = function () {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 1.5);   // cap for fill-rate / fps
+    this.dpr = 1;   // render at CSS resolution (1x) for max fps — biggest fill-rate win on HiDPI
     this.w = window.innerWidth; this.h = window.innerHeight;
     this.canvas.width = Math.floor(this.w * this.dpr);
     this.canvas.height = Math.floor(this.h * this.dpr);
@@ -41,31 +41,10 @@
   };
   Render.centerOn = function (x, y) { this.camera.x = x; this.camera.y = y; };
 
-  // ease others toward latest server pos; PREDICT your own cells from your input
-  // (so your control feels instant despite 20–30Hz network updates)
-  Render._smooth = function (snap, dt, input) {
-    const k = 1 - Math.exp(-22 * dt);
+  // ease every moving entity toward its latest server position (smooth, cheap, no jitter)
+  Render._smooth = function (snap, dt) {
+    const k = 1 - Math.exp(-20 * dt);
     const store = this._lerp, seen = new Set();
-    for (const c of snap.cells) {
-      const id = 'c' + c.id; seen.add(id);
-      let p = store.get(id);
-      if (!p) { p = { x: c.x, y: c.y }; store.set(id, p); }
-      if (c.isMe) {
-        p.x += (c.x - p.x) * 0.20;          // gently reconcile toward authoritative server pos
-        p.y += (c.y - p.y) * 0.20;
-        if (input) {                         // then advance locally by your own input
-          const dx = input.tx - p.x, dy = input.ty - p.y, d = Math.hypot(dx, dy) || 1;
-          let v = G.speed(c.mass);
-          if (d < c.r) v *= d / c.r;
-          p.x += dx / d * v * dt;
-          p.y += dy / d * v * dt;
-        }
-      } else {
-        p.x += (c.x - p.x) * k;
-        p.y += (c.y - p.y) * k;
-      }
-      c.x = p.x; c.y = p.y;
-    }
     const ease = (arr, pfx) => {
       for (const e of arr) {
         const id = pfx + e.id; seen.add(id);
@@ -75,7 +54,7 @@
         e.x = s.x; e.y = s.y;
       }
     };
-    ease(snap.viruses, 'v'); ease(snap.ejected, 'e');
+    ease(snap.cells, 'c'); ease(snap.viruses, 'v'); ease(snap.ejected, 'e');
     for (const key of store.keys()) if (!seen.has(key)) store.delete(key);
   };
 
@@ -301,6 +280,12 @@
 
   Render._hud = function (snap) {
     const ctx = this.ctx;
+    if (typeof this.fps === 'number') {           // live FPS, top-left next to the gear; red if low
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = this.fps < 45 ? '#ff7a90' : 'rgba(150,255,170,0.9)';
+      ctx.font = '700 15px sans-serif';
+      ctx.fillText(this.fps + ' FPS', 66, 30);
+    }
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#fff'; ctx.font = '700 19px "Microsoft YaHei", sans-serif';
     ctx.fillText('质量 ' + (snap.me ? Math.floor(snap.me.mass) : 0), 16, this.h - 38);

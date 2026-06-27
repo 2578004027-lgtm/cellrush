@@ -105,7 +105,7 @@ setInterval(() => {
     ws.send(JSON.stringify({ t: 'snap', snap: world.buildSnapshot(c.id, viewFor(p)) }));
   }
   world.events.length = 0;
-}, 1000 / 30);
+}, 1000 / 20);
 
 const PORT = process.env.PORT || 8137;
 httpServer.listen(PORT, () => {
