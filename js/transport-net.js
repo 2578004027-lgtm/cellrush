@@ -81,6 +81,8 @@
     this._clockOffset = null;
     this._lastSnapAt = 0;
     this._snapIntervals = [];
+    this._snapSeq = 0;
+    this._lastEventSeq = 0;
     this._pending = { split: false, eject: false, skill: null };
     this._aim = { tx: 0, ty: 0 };
     this._lastSend = 0;
@@ -147,6 +149,7 @@
     } else if (m.t === 'snap') {
       const snap = m.snap || EMPTY;
       snap._time = typeof m.time === 'number' ? m.time : nowSec();
+      snap._seq = ++this._snapSeq;
       this._applyNearbyDeltas(snap);
       this._noteSnap(snap._time);
       this.latest = snap;
@@ -184,8 +187,13 @@
     this._pending = { split: false, eject: false, skill: null };
   };
 
+  NetTransport.prototype._consumeEvents = function (out, source) {
+    if (!source || !source._seq || source._seq === this._lastEventSeq) out.events = [];
+    else this._lastEventSeq = source._seq;
+    return out;
+  };
   NetTransport.prototype.getSnapshot = function () {
-    if (!this.history.length || this._clockOffset == null) return cloneSnap(this.latest || EMPTY, this.stats);
+    if (!this.history.length || this._clockOffset == null) return this._consumeEvents(cloneSnap(this.latest || EMPTY, this.stats), this.latest);
     const target = nowSec() - this._clockOffset - INTERP_DELAY;
     let a = null, b = null;
     for (let i = 0; i < this.history.length; i++) {
@@ -193,9 +201,9 @@
       if (s._time <= target) a = s;
       if (s._time >= target) { b = s; break; }
     }
-    if (!a || !b) return cloneSnap(this.latest || EMPTY, this.stats);
-    if (a === b || b._time <= a._time) return cloneSnap(b, this.stats);
-    return interpSnap(a, b, Math.max(0, Math.min(1, (target - a._time) / (b._time - a._time))), this.stats);
+    if (!a || !b) return this._consumeEvents(cloneSnap(this.latest || EMPTY, this.stats), this.latest);
+    if (a === b || b._time <= a._time) return this._consumeEvents(cloneSnap(b, this.stats), b);
+    return this._consumeEvents(interpSnap(a, b, Math.max(0, Math.min(1, (target - a._time) / (b._time - a._time))), this.stats), b);
   };
   NetTransport.prototype.getStats = function () { return this.stats; };
   NetTransport.prototype.isMeAlive = function () { return !!(this.alive && this.latest && this.latest.me); };

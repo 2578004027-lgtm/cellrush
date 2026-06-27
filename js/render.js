@@ -281,7 +281,7 @@
     if (!events) return;
     for (const ev of events) {
       let msg = null;
-      if (ev.type === 'split') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 2.6, age: 0, ttl: 0.40, color: ev.color }); msg = '\u5206\u88c2'; }
+      if (ev.type === 'split') continue;
       else if (ev.type === 'merge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 1.9, r1: ev.r * 0.6, age: 0, ttl: 0.40, color: ev.color, flash: true }); msg = '\u5408\u4f53\u5b8c\u6210'; }
       else if (ev.type === 'pop') { for (let i = 0; i < 3; i++) this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * (2.4 + i), age: -i * 0.06, ttl: 0.55, color: ev.color }); msg = '\u7eff\u523a\u7206\u5f00'; }
       else if (ev.type === 'revenge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.7, r1: ev.r * 2.2, age: 0, ttl: 0.45, color: ev.color }); msg = '\u53cd\u566c\u6210\u529f'; }
