@@ -25,7 +25,9 @@ G.CFG = {
 
   // split (Space)
   splitMin: 35,
-  splitImpulse: 820,         // launch speed of the new piece (world u/s)
+  splitImpulse: 820,         // minimum launch speed of the new piece (world u/s)
+  splitLaunchRadii: 3.8,     // large cells launch about this many own radii forward
+  splitImpulseMax: 4800,     // cap radius-scaled split speed
   mergeBase: 6,              // base seconds before split pieces may re-merge
   mergePerCell: 2.0,         // + (cell count) * this  -> more splits = longer to recombine
   mergePerMass: 0.0,         // (kept for reference; merge time is now driven by split count)
@@ -48,7 +50,8 @@ G.CFG = {
   virusShootSpeed: 880,
 
   // cohesion / friction
-  cohesion: 0.65,            // how strongly a player's cells drift back together
+  cohesion: 0.65,            // how strongly merge-ready cells drift back together
+  splitCohesion: 0.04,       // keep freshly split cells from being pulled back too early
   frictionPerSec: 5,         // damping of split/eject momentum
 
   gridCell: 140,             // spatial-hash cell size
@@ -59,6 +62,21 @@ G.CFG = {
   // color palette offered in the menu (HSL hues)
   hues: [145, 205, 260, 320, 0, 30, 55, 95, 175, 235, 290, 340],
 
+
+  // bundled local skins used by the menu and bots
+  skinPresets: [
+    '',
+    '/assets/skins/ring.svg',
+    '/assets/skins/halo.svg',
+    '/assets/skins/circles.svg',
+    '/assets/skins/wolf.svg',
+    '/assets/skins/dragon.svg',
+    '/assets/skins/magatama.svg',
+    '/assets/skins/ghost.svg',
+    '/assets/skins/bat.svg',
+    '/assets/skins/daemon.svg',
+    '/assets/skins/star.svg',
+  ],
   // active skills (key -> effect). cd/dur in seconds.
   skills: {
     dash:   { key: 'Q', name: '冲刺', cd: 8,  dur: 0.35, mult: 3.4, color: '#ffd166' },

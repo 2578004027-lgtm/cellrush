@@ -33,7 +33,11 @@ const httpServer = http.createServer((req, res) => {
 
 const world = new api.World();
 const bots = [];
-for (let i = 0; i < CFG.botCount; i++) bots.push(world.addPlayer({ name: api.Bots.name(), color: api.util.randColor(), isBot: true }));
+function botSkin() {
+  const skins = (CFG.skinPresets || []).filter(Boolean);
+  return skins.length ? api.util.pick(skins) : '';
+}
+for (let i = 0; i < CFG.botCount; i++) bots.push(world.addPlayer({ name: api.Bots.name(), color: api.util.randColor(), skin: botSkin(), isBot: true }));
 
 const wss = new WebSocketServer({ server: httpServer });
 let nextId = 1;
@@ -130,7 +134,7 @@ setInterval(() => {
   let dt = (now - lastT) / 1000; lastT = now;
   if (dt > 0.1) dt = 0.1;
   for (const b of bots) {
-    if (!b.alive) { world.spawnPlayer(b); b.name = api.Bots.name(); b.color = api.util.randColor(); }
+    if (!b.alive) { world.spawnPlayer(b); b.name = api.Bots.name(); b.color = api.util.randColor(); b.skin = botSkin(); }
     else world.applyInput(b.id, api.Bots.think(world, b));
   }
   world.step(dt);

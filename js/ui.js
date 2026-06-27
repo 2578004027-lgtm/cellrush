@@ -2,19 +2,7 @@
 (function (G) {
   const CFG = G.CFG, U = G.util;
   const UI = {};
-  const PRESET_SKINS = [
-    '',
-    '/assets/skins/ring.svg',
-    '/assets/skins/halo.svg',
-    '/assets/skins/circles.svg',
-    '/assets/skins/wolf.svg',
-    '/assets/skins/dragon.svg',
-    '/assets/skins/magatama.svg',
-    '/assets/skins/ghost.svg',
-    '/assets/skins/bat.svg',
-    '/assets/skins/daemon.svg',
-    '/assets/skins/star.svg',
-  ];
+  const PRESET_SKINS = CFG.skinPresets || [''];
 
   UI.init = function (cbs) {
     this.cbs = cbs;

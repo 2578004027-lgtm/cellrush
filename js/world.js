@@ -89,9 +89,16 @@
       const half = c.mass / 2;
       c.mass = half;
       const ang = Math.atan2(p.input.ty - c.y, p.input.tx - c.x);
-      const nc = this._newCell(p, c.x, c.y, half);
-      nc.vx = Math.cos(ang) * CFG.splitImpulse;
-      nc.vy = Math.sin(ang) * CFG.splitImpulse;
+      const ca = Math.cos(ang), sa = Math.sin(ang);
+      const r = radius(half);
+      const launch = U.clamp(
+        Math.max(CFG.splitImpulse, r * (CFG.splitLaunchRadii || 3.8) * CFG.frictionPerSec),
+        CFG.splitImpulse,
+        CFG.splitImpulseMax || 4800
+      );
+      const nc = this._newCell(p, c.x + ca * Math.min(140, r * 0.55), c.y + sa * Math.min(140, r * 0.55), half);
+      nc.vx = ca * launch;
+      nc.vy = sa * launch;
       p.cells.push(nc);
       const mAt = this.time + CFG.mergeBase + p.cells.length * CFG.mergePerCell;  // more pieces -> longer
       nc.mergeAt = mAt; c.mergeAt = mAt;
@@ -207,7 +214,8 @@
       let cx = 0, cy = 0, tm = 0;
       for (const c of p.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
       cx /= tm; cy /= tm;
-      const coh = this.time < p.fx.merge ? CFG.skills.merge.cohesion : CFG.cohesion;
+      const mergeReady = cs.every((c) => this.time >= c.mergeAt);
+      const coh = this.time < p.fx.merge ? CFG.skills.merge.cohesion : (mergeReady ? CFG.cohesion : (CFG.splitCohesion || 0.04));
       for (const c of p.cells) { c.x += (cx - c.x) * coh * dt; c.y += (cy - c.y) * coh * dt; }
     }
   };
