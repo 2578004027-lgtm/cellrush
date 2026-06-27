@@ -109,7 +109,8 @@
     if (!c || c.mass < CFG.ejectMin) return;
     const ang = Math.atan2(p.input.ty - c.y, p.input.tx - c.x);
     const ca = Math.cos(ang), sa = Math.sin(ang);
-    const loss = Math.min(def.mass || CFG.ejectMass, Math.max(0, c.mass - CFG.startMass));
+    const lossMass = def.loss || def.mass || CFG.ejectMass;
+    const loss = Math.min(lossMass, Math.max(0, c.mass - CFG.startMass));
     c.mass -= loss;
     const r = radius(c.mass);
     this.ejected.push({
@@ -382,8 +383,8 @@
       const r = radius(c.mass);
       H.query(c.x, c.y, r, (e) => {
         if (remEject.has(e.id)) return;
-        if (e.ownerId && e.ownerId === c.ownerId) return;
         if (U.dist(c.x, c.y, e.x, e.y) >= r) return;
+        if (e.ownerId && e.ownerId === c.ownerId) { remEject.add(e.id); c.mass += e.mass; return; }
         if (e.kind === 'thorn') {
           remEject.add(e.id);
           if (c.mass > CFG.splitMin * 2.2) this._popCell(c);

@@ -283,16 +283,37 @@ wss.on('connection', (ws) => {
   ws.on('error', () => {});
 });
 
+function msNow() { return Number(process.hrtime.bigint()) / 1e6; }
+const perf = { simN: 0, simSum: 0, simMax: 0, snapN: 0, snapSum: 0, snapMax: 0 };
+function notePerf(kind, ms) {
+  const n = kind + 'N', sum = kind + 'Sum', max = kind + 'Max';
+  perf[n]++; perf[sum] += ms; if (ms > perf[max]) perf[max] = ms;
+}
+function cellCount() {
+  let n = 0;
+  for (const p of world.players.values()) if (p.alive) n += p.cells.length;
+  return n;
+}
+setInterval(() => {
+  const simAvg = perf.simN ? perf.simSum / perf.simN : 0;
+  const snapAvg = perf.snapN ? perf.snapSum / perf.snapN : 0;
+  console.log('[perf] clients=%d bots=%d cells=%d food=%d viruses=%d ejected=%d simAvg=%sms simMax=%sms snapAvg=%sms snapMax=%sms',
+    clients.size, bots.length, cellCount(), world.food.length, world.viruses.length, world.ejected.length,
+    simAvg.toFixed(2), perf.simMax.toFixed(2), snapAvg.toFixed(2), perf.snapMax.toFixed(2));
+  perf.simN = perf.simSum = perf.simMax = perf.snapN = perf.snapSum = perf.snapMax = 0;
+}, 5000);
 let lastT = Date.now();
 setInterval(() => {
   const now = Date.now();
   let dt = (now - lastT) / 1000; lastT = now;
   if (dt > 0.1) dt = 0.1;
+  const simStart = msNow();
   for (const b of bots) {
     if (!b.alive) { b.spawnMass = CFG.botStartMass || 50; world.spawnPlayer(b); b.name = api.Bots.name(); b.color = api.util.randColor(); b.skin = botSkin(); }
     else world.applyInput(b.id, api.Bots.think(world, b));
   }
   world.step(dt);
+  notePerf('sim', msNow() - simStart);
   for (const [ws, c] of clients) {
     const p = world.players.get(c.id);
     if (p && !p.alive && !c.deadNotified) {
@@ -316,6 +337,7 @@ function viewFor(p) {
   return { x0: cx - half * 1.4, x1: cx + half * 1.4, y0: cy - half, y1: cy + half };
 }
 setInterval(() => {
+  const snapStart = msNow();
   for (const [ws, c] of clients) {
     if (ws.readyState !== 1) continue;
     const p = world.players.get(c.id);
@@ -324,6 +346,7 @@ setInterval(() => {
     ws.send(JSON.stringify({ t: 'snap', time: world.time, snap }));
   }
   world.events.length = 0;
+  notePerf('snap', msNow() - snapStart);
 }, 1000 / 20);
 
 const PORT = process.env.PORT || 8137;
