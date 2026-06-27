@@ -114,6 +114,8 @@
     this.respawnBtn.addEventListener('click', () => go(this.cbs.onRespawn));
 
     this.settings = document.getElementById('settings');
+    this.adminPanel = document.getElementById('admin-panel');
+    this.adminStatus = document.getElementById('admin-tune-status');
     const sound = document.getElementById('set-sound');
     const names = document.getElementById('set-names');
     const minimap = document.getElementById('set-minimap');
@@ -132,6 +134,13 @@
     };
     if (adminLogin) adminLogin.addEventListener('click', unlockAdmin);
     if (adminKey) adminKey.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); unlockAdmin(); } });
+    const adminClose = document.getElementById('admin-close');
+    const adminApply = document.getElementById('admin-apply');
+    const adminReset = document.getElementById('admin-reset-local');
+    if (adminClose) adminClose.addEventListener('click', () => this.closeAdminPanel());
+    if (adminApply) adminApply.addEventListener('click', () => { if (this.cbs.onAdminTune) this.cbs.onAdminTune(this.readAdminTuning()); });
+    if (adminReset) adminReset.addEventListener('click', () => { if (this.cbs.onAdminTune) this.cbs.onAdminTune(null); });
+    this.setAdminTuning({ tuning: this.localAdminTuning() });
     this.renderSkillShop();
 
     document.getElementById('gear').addEventListener('click', () => this.openSettings());
@@ -142,7 +151,13 @@
       this.menu.classList.remove('hidden');
     });
     window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (this.cbs.isAdmin && this.cbs.isAdmin()) this.openAdminPanel();
+        return;
+      }
       if (e.key !== 'Escape') return;
+      if (this.adminPanel && !this.adminPanel.classList.contains('hidden')) { this.closeAdminPanel(); return; }
       if (this.settings.classList.contains('hidden')) this.openSettings();
       else this.closeSettings();
     });
@@ -159,6 +174,65 @@
     this.cbs.onPause(false);
   };
 
+  UI.localAdminTuning = function () {
+    return {
+      startMass: G.CFG.startMass,
+      mergeMin: G.CFG.mergeMin || 1.2,
+      mergeMax: G.CFG.mergeMax || 3,
+      splitLaunchRadii: G.CFG.splitLaunchRadii,
+      splitImpulse: G.CFG.splitImpulse,
+      splitStartSeparation: G.CFG.splitStartSeparation,
+      foodCount: G.CFG.foodCount,
+      virusCount: G.CFG.virusCount,
+      poisonDelay: G.CFG.skills.poison.poisonDelay || 3,
+      poisonShrink: G.CFG.skills.poison.poisonShrink || 0.18,
+    };
+  };
+  UI.applyLocalAdminTuning = function (t) {
+    if (!t) return;
+    const set = (k, v) => { if (typeof v === 'number' && Number.isFinite(v)) G.CFG[k] = v; };
+    set('startMass', t.startMass); set('mergeMin', t.mergeMin); set('mergeMax', t.mergeMax);
+    set('splitLaunchRadii', t.splitLaunchRadii); set('splitImpulse', t.splitImpulse); set('splitStartSeparation', t.splitStartSeparation);
+    set('foodCount', t.foodCount); set('virusCount', t.virusCount);
+    if (G.CFG.skills && G.CFG.skills.poison) {
+      if (typeof t.poisonDelay === 'number') G.CFG.skills.poison.poisonDelay = t.poisonDelay;
+      if (typeof t.poisonShrink === 'number') G.CFG.skills.poison.poisonShrink = t.poisonShrink;
+    }
+  };
+  UI.setAdminTuning = function (msg) {
+    if (!this.adminPanel) return;
+    if (msg && msg.ok === false) {
+      if (this.adminStatus) this.adminStatus.textContent = msg.error || '\u6ca1\u6709\u6743\u9650';
+      return;
+    }
+    const t = (msg && msg.tuning) || msg || this.localAdminTuning();
+    this.applyLocalAdminTuning(t);
+    this.adminPanel.querySelectorAll('[data-tune]').forEach((el) => {
+      const v = t[el.dataset.tune];
+      if (typeof v === 'number' && Number.isFinite(v)) el.value = String(Math.round(v * 1000) / 1000);
+    });
+    if (this.adminStatus) this.adminStatus.textContent = '\u5df2\u540c\u6b65\u5f53\u524d\u53c2\u6570';
+  };
+  UI.readAdminTuning = function () {
+    const out = {};
+    if (!this.adminPanel) return out;
+    this.adminPanel.querySelectorAll('[data-tune]').forEach((el) => {
+      const v = Number(el.value);
+      if (Number.isFinite(v)) out[el.dataset.tune] = v;
+    });
+    return out;
+  };
+  UI.openAdminPanel = function () {
+    if (!this.adminPanel || !this.cbs.isPlaying()) return;
+    this.adminPanel.classList.remove('hidden');
+    this.cbs.onPause(true);
+    if (this.cbs.onAdminTune) this.cbs.onAdminTune(null);
+  };
+  UI.closeAdminPanel = function () {
+    if (!this.adminPanel || this.adminPanel.classList.contains('hidden')) return;
+    this.adminPanel.classList.add('hidden');
+    if (!this.settings || this.settings.classList.contains('hidden')) this.cbs.onPause(false);
+  };
   UI.showError = function (msg) {
     this.death.classList.add('hidden');
     if (this.settings) this.settings.classList.add('hidden');

@@ -142,7 +142,7 @@
   World.prototype._mergeDelay = function (mass, cellCount) {
     const byMass = Math.sqrt(Math.max(1, mass)) * (CFG.mergePerMass || 0);
     const byCells = Math.max(0, cellCount - 1) * (CFG.mergePerCell || 0);
-    return U.clamp((CFG.mergeBase || 2) + byMass + byCells, CFG.mergeMin || 2, CFG.mergeMax || 8);
+    return U.clamp((CFG.mergeBase || 2) + byMass + byCells, CFG.mergeMin || 1.2, CFG.mergeMax || 3);
   };
   World.prototype._split = function (p) {
     const snapshot = p.cells.slice();

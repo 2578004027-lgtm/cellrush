@@ -12,6 +12,7 @@
       name, color, skin, account, password,
       onWelcome: () => {},
       onAccount: (m) => G.UI.setAccount(m),
+      onAdminTune: (m) => G.UI.setAdminTuning(m),
       onDead: (m) => { playing = false; G.UI.showDeath({ maxMass: m.maxMass, diamondsEarned: m.diamondsEarned || 0, diamonds: m.diamonds || 0 }, m.survived || 0); },
       onClose: () => { if (playing) { playing = false; G.UI.showError('\\u8fde\\u63a5\\u5df2\\u65ad\\u5f00\\u3002'); } },
       onError: () => { playing = false; G.UI.showError('\\u8fde\\u63a5\\u4e0d\\u4e0a\\u670d\\u52a1\\u5668\\uff0c\\u8bf7\\u5148\\u542f\\u52a8\\u672c\\u5730\\u670d\\u52a1\\u3002'); },
@@ -54,8 +55,10 @@
       onPause: (v) => { paused = v; },
       onAdminKey: (key) => { if (transport) transport.adminLogin(key); },
       onBuySkill: (skill) => { if (transport) transport.buySkill(skill); },
+      onAdminTune: (params) => { if (transport) transport.adminTune(params); },
       onBackToMenu: () => { playing = false; paused = false; if (transport) transport.close(); transport = null; G.Render._lerp.clear(); },
       isPlaying: () => playing,
+      isAdmin: () => !!(transport && transport.latest && transport.latest.me && transport.latest.me.admin),
     });
     last = performance.now() / 1000;
     requestAnimationFrame(loop);

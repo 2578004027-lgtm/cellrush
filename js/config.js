@@ -33,6 +33,8 @@ G.CFG = {
   mergeBase: 2.0,            // smallest split pieces can re-merge quickly
   mergePerCell: 0.35,        // more pieces add a little delay
   mergePerMass: 0.085,       // larger pieces wait longer
+  mergeMin: 1.2,
+  mergeMax: 3.0,
 
   // eject (W)
   ejectMin: 35,

@@ -125,6 +125,55 @@ const httpServer = http.createServer((req, res) => {
 
 const world = new api.World();
 const bots = [];
+const TUNABLES = {
+  startMass: { path: ['startMass'], min: 35, max: 2000, int: true },
+  mergeMin: { path: ['mergeMin'], min: 0.3, max: 3 },
+  mergeMax: { path: ['mergeMax'], min: 0.5, max: 10 },
+  splitLaunchRadii: { path: ['splitLaunchRadii'], min: 0.4, max: 3 },
+  splitImpulse: { path: ['splitImpulse'], min: 200, max: 3000, int: true },
+  splitStartSeparation: { path: ['splitStartSeparation'], min: 1.4, max: 3 },
+  foodCount: { path: ['foodCount'], min: 200, max: 3000, int: true },
+  virusCount: { path: ['virusCount'], min: 0, max: 80, int: true },
+  poisonDelay: { path: ['skills', 'poison', 'poisonDelay'], min: 0.5, max: 8 },
+  poisonShrink: { path: ['skills', 'poison', 'poisonShrink'], min: 0.05, max: 0.9 },
+};
+function tuneGet(pathParts) {
+  let o = CFG;
+  for (const k of pathParts) o = o && o[k];
+  return o;
+}
+function tuneSet(pathParts, value) {
+  let o = CFG;
+  for (let i = 0; i < pathParts.length - 1; i++) o = o[pathParts[i]];
+  o[pathParts[pathParts.length - 1]] = value;
+}
+function tuningSnapshot() {
+  const out = {};
+  for (const k of Object.keys(TUNABLES)) out[k] = tuneGet(TUNABLES[k].path);
+  return out;
+}
+function applyAdminTuning(params) {
+  if (params && typeof params === 'object') {
+    for (const k of Object.keys(params)) {
+      const def = TUNABLES[k];
+      if (!def) continue;
+      let v = Number(params[k]);
+      if (!Number.isFinite(v)) continue;
+      v = Math.max(def.min, Math.min(def.max, v));
+      if (def.int) v = Math.round(v);
+      tuneSet(def.path, v);
+    }
+    if (CFG.mergeMax < CFG.mergeMin) CFG.mergeMax = CFG.mergeMin;
+    while (world.food.length > CFG.foodCount) world.food.pop();
+    while (world.food.length < CFG.foodCount) world.food.push(world._spawnFood());
+    while (world.viruses.length > CFG.virusCount) world.viruses.pop();
+    while (world.viruses.length < CFG.virusCount) world.viruses.push(world._spawnVirus());
+  }
+  return tuningSnapshot();
+}
+function sendAdminTune(ws, ok, tuning, error) {
+  if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'adminTune', ok: !!ok, tuning: tuning || tuningSnapshot(), error: error || '' }));
+}
 function botSkin() {
   const skins = (CFG.skinPresets || []).filter(Boolean);
   return skins.length ? api.util.pick(skins) : '';
@@ -220,6 +269,9 @@ wss.on('connection', (ws) => {
       if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'adminAuth', ok }));
     } else if (m.t === 'buySkill') {
       buySkill(p, ws, m.skill);
+    } else if (m.t === 'adminTune') {
+      if (!p.admin) sendAdminTune(ws, false, null, '\u6ca1\u6709\u6743\u9650');
+      else sendAdminTune(ws, true, applyAdminTuning(m.params || null));
     } else if (m.t === 'admin') {
       if (p.admin && m.on === false) p.admin = false;
     }

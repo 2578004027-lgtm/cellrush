@@ -232,7 +232,7 @@
       ctx.lineWidth = Math.max(2, c.r * 0.07); ctx.strokeStyle = 'rgba(255,210,80,0.95)'; ctx.setLineDash([8, 6]); ctx.stroke(); ctx.setLineDash([]);
     }
     if (c.mergeIn && c.mergeIn > 0.05) {            // can't re-merge yet -> countdown arc + seconds
-      const frac = U.clamp(c.mergeIn / (CFG.mergeMax || 8), 0, 1);
+      const frac = U.clamp(c.mergeIn / (CFG.mergeMax || 3), 0, 1);
       ctx.beginPath();
       ctx.arc(c.x, c.y, c.r + 5 / this.camera.scale, -Math.PI / 2, -Math.PI / 2 + U.TAU * frac);
       ctx.lineWidth = Math.max(2, c.r * 0.07); ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.stroke();

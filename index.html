@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>CellRush</title>
 <link rel="icon" href="data:," />
-<link rel="stylesheet" href="style.css?v=20260627-10" />
+<link rel="stylesheet" href="style.css?v=20260627-12" />
 <script>
 window.addEventListener('error', function (e) {
   var box = document.getElementById('client-error-overlay');
@@ -126,14 +126,39 @@ window.addEventListener('error', function (e) {
   </div>
 </div>
 
-<script src="js/config.js?v=20260627-10"></script>
-<script src="js/util.js?v=20260627-10"></script>
-<script src="js/world.js?v=20260627-10"></script>
-<script src="js/input.js?v=20260627-10"></script>
-<script src="js/audio.js?v=20260627-10"></script>
-<script src="js/render.js?v=20260627-10"></script>
-<script src="js/ui.js?v=20260627-10"></script>
-<script src="js/transport-net.js?v=20260627-10"></script>
-<script src="js/main.js?v=20260627-10"></script>
+<div id="admin-panel" class="overlay hidden">
+  <div class="admin-panel-box">
+    <div class="admin-panel-head">
+      <h2>&#31649;&#29702;&#21592;&#38754;&#26495;</h2>
+      <button id="admin-close" type="button">X</button>
+    </div>
+    <div class="admin-grid">
+      <label><span>&#24320;&#23616;&#20307;&#31215;</span><input data-tune="startMass" type="number" min="35" max="2000" step="5" /></label>
+      <label><span>&#21512;&#29699;&#26368;&#24555;</span><input data-tune="mergeMin" type="number" min="0.3" max="3" step="0.1" /></label>
+      <label><span>&#21512;&#29699;&#26368;&#24930;</span><input data-tune="mergeMax" type="number" min="0.5" max="10" step="0.1" /></label>
+      <label><span>&#20998;&#35010;&#36317;&#31163;</span><input data-tune="splitLaunchRadii" type="number" min="0.4" max="3" step="0.05" /></label>
+      <label><span>&#20998;&#35010;&#36895;&#24230;</span><input data-tune="splitImpulse" type="number" min="200" max="3000" step="20" /></label>
+      <label><span>&#20998;&#35010;&#20998;&#24320;</span><input data-tune="splitStartSeparation" type="number" min="1.4" max="3" step="0.05" /></label>
+      <label><span>&#39135;&#29289;&#25968;&#37327;</span><input data-tune="foodCount" type="number" min="200" max="3000" step="50" /></label>
+      <label><span>&#32511;&#21050;&#25968;&#37327;</span><input data-tune="virusCount" type="number" min="0" max="80" step="1" /></label>
+      <label><span>&#27602;&#33647;&#24310;&#36831;</span><input data-tune="poisonDelay" type="number" min="0.5" max="8" step="0.1" /></label>
+      <label><span>&#27602;&#21518;&#20445;&#30041;</span><input data-tune="poisonShrink" type="number" min="0.05" max="0.9" step="0.01" /></label>
+    </div>
+    <div id="admin-tune-status" class="admin-tune-status">Ctrl + Shift + A</div>
+    <div class="admin-panel-actions">
+      <button id="admin-apply" type="button">&#24212;&#29992;</button>
+      <button id="admin-reset-local" type="button">&#21047;&#26032;&#24403;&#21069;</button>
+    </div>
+  </div>
+</div>
+<script src="js/config.js?v=20260627-12"></script>
+<script src="js/util.js?v=20260627-12"></script>
+<script src="js/world.js?v=20260627-12"></script>
+<script src="js/input.js?v=20260627-12"></script>
+<script src="js/audio.js?v=20260627-12"></script>
+<script src="js/render.js?v=20260627-12"></script>
+<script src="js/ui.js?v=20260627-12"></script>
+<script src="js/transport-net.js?v=20260627-12"></script>
+<script src="js/main.js?v=20260627-12"></script>
 </body>
 </html>
