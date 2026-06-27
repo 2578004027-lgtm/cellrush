@@ -10,7 +10,8 @@
     camera: { x: CFG.worldSize / 2, y: CFG.worldSize / 2, scale: 1 },
     _lerp: new Map(),       // id -> {x,y} eased draw positions
     _fx: [],                // transient visual effects (split/merge/pop rings)
-  };
+      _skins: new Map(),      // url -> HTMLImageElement cache for cell skins
+};
 
   Render.init = function (canvas) {
     this.canvas = canvas;
@@ -40,9 +41,21 @@
     return { x0: v.x0 - m, x1: v.x1 + m, y0: v.y0 - m, y1: v.y1 + m };
   };
   Render.centerOn = function (x, y) { this.camera.x = x; this.camera.y = y; };
+  Render._skinImage = function (url) {
+    if (!url) return null;
+    let img = this._skins.get(url);
+    if (!img) {
+      img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+      this._skins.set(url, img);
+    }
+    return img.complete && img.naturalWidth > 0 ? img : null;
+  };
 
   // ease every moving entity toward its latest server position (smooth, cheap, no jitter)
   Render._smooth = function (snap, dt) {
+    if (snap._interpolated) { this._lerp.clear(); return; }
     const k = 1 - Math.exp(-20 * dt);
     const store = this._lerp, seen = new Set();
     const ease = (arr, pfx) => {
@@ -126,6 +139,13 @@
   Render._cell = function (ctx, c) {
     ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, U.TAU);
     ctx.fillStyle = c.color; ctx.fill();
+        const skin = this._skinImage(c.skin);
+    if (skin) {
+      ctx.save();
+      ctx.clip();
+      ctx.drawImage(skin, c.x - c.r, c.y - c.r, c.r * 2, c.r * 2);
+      ctx.restore();
+    }
     ctx.lineWidth = Math.max(2, c.r * 0.05);
     ctx.strokeStyle = c.dark || 'rgba(0,0,0,0.25)'; ctx.stroke();
 
@@ -217,22 +237,27 @@
   };
 
   Render._leaderboard = function (snap) {
-    const ctx = this.ctx, lb = snap.leaderboard;
-    const w = 178, x = this.w - w - 16, y = 16, h = 34 + lb.length * 22;
-    ctx.fillStyle = 'rgba(8,10,24,0.5)'; this._round(ctx, x, y, w, h, 12); ctx.fill();
-    ctx.fillStyle = '#ffe27a'; ctx.font = '700 16px "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.fillText('排行榜', x + w / 2, y + 23);
-    ctx.font = '600 13px "Microsoft YaHei", sans-serif';
+    const ctx = this.ctx, lb = snap.leaderboard || [];
+    const w = 208, x = this.w - w - 8, y = 8;
+    ctx.save();
+    ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = 'rgba(210,210,210,0.92)';
+    ctx.font = '500 24px "Microsoft YaHei", sans-serif';
+    ctx.fillText('Leaderboard', x + w - 8, y + 24);
+    ctx.font = '500 12.5px "Microsoft YaHei", sans-serif';
     lb.forEach((e, i) => {
-      const ty = y + 44 + i * 22;
-      ctx.textAlign = 'left'; ctx.fillStyle = e.isMe ? '#7CFFB0' : '#dfe6ff';
-      let nm = (i + 1) + '. ' + e.name;
-      if (nm.length > 13) nm = nm.slice(0, 13) + '…';
-      ctx.fillText(nm, x + 12, ty);
-      ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.fillText(Math.floor(e.mass), x + w - 12, ty);
+      const rowY = y + 36 + i * 23;
+      let nm = e.name || 'Player';
+      if (nm.length > 14) nm = nm.slice(0, 14) + '...';
+      const mass = Math.floor(e.mass || 0);
+      const label = (i + 1) + '  [' + mass + ']  ' + nm;
+      const tw = Math.min(w - 10, Math.max(92, ctx.measureText(label).width + 12));
+      ctx.fillStyle = e.isMe ? 'rgba(28,120,210,0.72)' : 'rgba(37,37,37,0.52)';
+      this._round(ctx, x + w - tw, rowY - 14, tw, 19, 2); ctx.fill();
+      ctx.fillStyle = e.isMe ? '#ffffff' : 'rgba(245,245,245,0.92)';
+      ctx.fillText(label, x + w - 7, rowY);
     });
+    ctx.restore();
   };
 
   Render._minimap = function (snap) {
@@ -279,22 +304,40 @@
   };
 
   Render._hud = function (snap) {
-    const ctx = this.ctx;
-    if (typeof this.fps === 'number') {           // live FPS, top-left next to the gear; red if low
-      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-      ctx.fillStyle = this.fps < 45 ? '#ff7a90' : 'rgba(150,255,170,0.9)';
-      ctx.font = '700 15px sans-serif';
-      ctx.fillText(this.fps + ' FPS', 66, 30);
-    }
+    const ctx = this.ctx, net = snap._net || {};
+    ctx.save();
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = '#fff'; ctx.font = '700 19px "Microsoft YaHei", sans-serif';
-    ctx.fillText('质量 ' + (snap.me ? Math.floor(snap.me.mass) : 0), 16, this.h - 38);
-    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '600 13px "Microsoft YaHei", sans-serif';
-    ctx.fillText('最高 ' + (snap.me ? Math.floor(snap.me.maxMass) : 0), 16, this.h - 18);
+    ctx.font = '600 12.5px "Microsoft YaHei", sans-serif';
+    const fps = typeof this.fps === 'number' ? this.fps : 0;
+    const rows = [
+      'FPS ' + fps,
+      'SNAP ' + (net.snapHz || 0) + 'Hz',
+      'JIT ' + (net.jitterMs || 0) + 'ms',
+      'DLT ' + (net.deltaCount || 0),
+      'BUF ' + (net.bufferMs || 0) + 'ms',
+    ];
+    ctx.fillStyle = 'rgba(37,37,37,0.52)';
+    this._round(ctx, 62, 10, 116, 99, 2); ctx.fill();
+    rows.forEach((r, i) => {
+      const bad = (i === 0 && fps < 45) || (i === 2 && (net.jitterMs || 0) > 35);
+      ctx.fillStyle = bad ? '#ff7a90' : 'rgba(245,245,245,0.92)';
+      ctx.fillText(r, 72, 30 + i * 17);
+    });
+
+    const mass = snap.me ? Math.floor(snap.me.mass) : 0;
+    const maxMass = snap.me ? Math.floor(snap.me.maxMass) : 0;
+    const text = 'Mass ' + mass + '   Best ' + maxMass + (snap.me && snap.me.cells > 1 ? '   Cells ' + snap.me.cells : '');
+    const w = Math.max(230, ctx.measureText(text).width + 28);
+    const x = (this.w - w) / 2, y = this.h - 29;
+    ctx.fillStyle = 'rgba(37,37,37,0.52)';
+    this._round(ctx, x, y, w, 24, 2); ctx.fill();
+    ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.font = '500 16px "Microsoft YaHei", sans-serif';
+    ctx.fillText(text, this.w / 2, y + 17);
     if (snap.me && snap.me.admin) {
-      ctx.fillStyle = '#ffd24f'; ctx.font = '700 14px "Microsoft YaHei", sans-serif';
-      ctx.fillText('管理员模式  [ / ] 增减质量', 16, this.h - 60);
+      ctx.textAlign = 'left'; ctx.fillStyle = '#ffd24f'; ctx.font = '700 13px "Microsoft YaHei", sans-serif';
+      ctx.fillText('Admin mode  [ / ] mass', 16, this.h - 60);
     }
+    ctx.restore();
   };
 
   G.Render = Render;

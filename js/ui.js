@@ -1,48 +1,118 @@
-// CellRush — menus: start screen (nickname + color), death/respawn screen.
+// CellRush - menu, settings, death and respawn UI.
 (function (G) {
   const CFG = G.CFG, U = G.util;
   const UI = {};
+  const PRESET_SKINS = [
+    '',
+    'https://cwal.io/skins/ring.png',
+    'https://cwal.io/skins/h.png',
+    'https://cwal.io/skins/circles.png',
+    'https://cwal.io/skins/w.png',
+    'https://cwal.io/skins/wolf.png',
+    'https://cwal.io/skins/dragon.png',
+    'https://cwal.io/skins/magatama.png',
+    'https://cwal.io/skins/ghost.png',
+    'https://cwal.io/skins/bat.png',
+    'https://cwal.io/skins/daemon.png',
+  ];
 
   UI.init = function (cbs) {
     this.cbs = cbs;
     this.menu = document.getElementById('menu');
     this.death = document.getElementById('death');
     this.nameInput = document.getElementById('name');
+    this.skinInput = document.getElementById('skin-url');
     this.skinsEl = document.getElementById('skins');
+    this.preview = document.getElementById('avatar-preview');
     this.playBtn = document.getElementById('play');
     this.respawnBtn = document.getElementById('respawn');
     this.deathStats = document.getElementById('death-stats');
     this.selectedHue = U.pick(CFG.hues);
+    this.selectedSkin = '';
 
-    CFG.hues.forEach((h) => {
-      const d = document.createElement('div');
-      d.className = 'swatch';
-      d.style.background = `hsl(${h},70%,56%)`;
-      if (h === this.selectedHue) d.classList.add('sel');
+    const safeUrl = (url) => (url || '').trim().replace(/"/g, '%22');
+    const applyPreview = () => {
+      const c = U.colorFromHue(this.selectedHue);
+      const skin = (this.skinInput.value || this.selectedSkin || '').trim();
+      if (!this.preview) return;
+      this.preview.style.backgroundColor = c.css;
+      this.preview.style.backgroundImage = skin ? 'url("' + safeUrl(skin) + '")' : '';
+      this.preview.style.backgroundSize = 'cover';
+      this.preview.style.backgroundPosition = 'center';
+      this.preview.style.boxShadow = '0 0 32px 16px ' + c.dark.replace('hsl', 'hsla').replace(')', ',0.42)');
+    };
+    const selectSkinEl = (el) => {
+      this.skinsEl.querySelectorAll('.swatch').forEach((s) => s.classList.remove('sel'));
+      if (el) el.classList.add('sel');
+    };
+    const wireSwatch = (d, skin, hue) => {
+      d.type = 'button';
+      d.classList.add('swatch');
+      if (skin) {
+        d.dataset.skin = skin;
+        d.style.backgroundImage = 'url("' + safeUrl(skin) + '")';
+        d.style.backgroundSize = 'cover';
+        d.style.backgroundPosition = 'center';
+      } else if (typeof hue === 'number') {
+        d.dataset.hue = '' + hue;
+        d.style.background = 'hsl(' + hue + ',70%,56%)';
+      }
       d.addEventListener('click', () => {
-        this.selectedHue = h;
-        this.skinsEl.querySelectorAll('.swatch').forEach((s) => s.classList.remove('sel'));
-        d.classList.add('sel');
+        const h = Number(d.dataset.hue);
+        if (!Number.isNaN(h)) this.selectedHue = h;
+        this.selectedSkin = d.dataset.skin || '';
+        this.skinInput.value = this.selectedSkin;
+        selectSkinEl(d);
+        applyPreview();
       });
+    };
+
+    if (!this.skinsEl.children.length) {
+      PRESET_SKINS.forEach((skin, i) => {
+        const d = document.createElement('button');
+        d.textContent = skin ? (skin.split('/').pop() || 'skin').replace('.png', '') : 'Pure';
+        d.title = skin || 'Pure color';
+        if (i === 0) d.classList.add('sel');
+        wireSwatch(d, skin, null);
+        this.skinsEl.appendChild(d);
+      });
+    } else {
+      Array.from(this.skinsEl.querySelectorAll('.swatch')).forEach((d) => wireSwatch(d, d.dataset.skin || '', null));
+    }
+    CFG.hues.forEach((h) => {
+      const d = document.createElement('button');
+      d.textContent = '';
+      d.title = 'Color ' + h;
+      wireSwatch(d, '', h);
       this.skinsEl.appendChild(d);
     });
 
-    try { const ln = localStorage.getItem('cr_name'); if (ln) this.nameInput.value = ln; } catch (e) { /* */ }
+    try {
+      const ln = localStorage.getItem('cr_name'); if (ln) this.nameInput.value = ln;
+      const skin = localStorage.getItem('cr_skin'); if (skin) { this.selectedSkin = skin; this.skinInput.value = skin; }
+    } catch (e) { /* localStorage may be blocked */ }
+    if (this.selectedSkin) {
+      const saved = this.skinsEl.querySelector('[data-skin="' + this.selectedSkin.replace(/"/g, '\\"') + '"]');
+      if (saved) selectSkinEl(saved);
+    }
+    this.skinInput.addEventListener('input', applyPreview);
+    applyPreview();
 
     const go = (fn) => {
-      const name = (this.nameInput.value || '你').trim().slice(0, 14) || '你';
-      try { localStorage.setItem('cr_name', name); } catch (e) { /* */ }
+      const name = (this.nameInput.value || 'Player').trim().slice(0, 14) || 'Player';
+      const skin = (this.skinInput.value || this.selectedSkin || '').trim();
+      try { localStorage.setItem('cr_name', name); localStorage.setItem('cr_skin', skin); } catch (e) { /* ignore */ }
       const color = U.colorFromHue(this.selectedHue);
       const ne = document.getElementById('neterr'); if (ne) ne.classList.add('hidden');
       this.menu.classList.add('hidden');
       this.death.classList.add('hidden');
-      fn(name, color);
+      fn(name, color, skin);
     };
     this.playBtn.addEventListener('click', () => go(this.cbs.onPlay));
     this.nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(this.cbs.onPlay); });
+    this.skinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(this.cbs.onPlay); });
     this.respawnBtn.addEventListener('click', () => go(this.cbs.onRespawn));
 
-    // ---- in-game settings ----
     this.settings = document.getElementById('settings');
     const sound = document.getElementById('set-sound');
     const names = document.getElementById('set-names');
@@ -70,7 +140,7 @@
   };
 
   UI.openSettings = function () {
-    if (!this.cbs.isPlaying()) return;        // only meaningful during a game
+    if (!this.cbs.isPlaying()) return;
     this.settings.classList.remove('hidden');
     this.cbs.onPause(true);
   };
@@ -80,7 +150,6 @@
     this.cbs.onPause(false);
   };
 
-  // surface a connection problem: drop back to the menu with a red message
   UI.showError = function (msg) {
     this.death.classList.add('hidden');
     if (this.settings) this.settings.classList.add('hidden');
@@ -91,7 +160,7 @@
 
   UI.showDeath = function (stats, survived) {
     this.deathStats.innerHTML =
-      `最高质量 <b>${Math.floor(stats.maxMass || 0)}</b><br>存活 <b>${survived.toFixed(0)}</b> 秒`;
+      'Best mass <b>' + Math.floor(stats.maxMass || 0) + '</b><br>Survived <b>' + survived.toFixed(0) + '</b>s';
     this.death.classList.remove('hidden');
   };
 

@@ -38,6 +38,7 @@
       id: opts.id || ('p' + U.uid()),
       name: opts.name || 'anon',
       color: opts.color || U.randColor(),
+      skin: opts.skin || '',
       isBot: !!opts.isBot,
       cells: [], input: { tx: 0, ty: 0, split: false, eject: false },
       alive: false, maxMass: 0, bornAt: this.time, ai: {},
@@ -349,7 +350,7 @@
     const out = { cells: [], food: [], viruses: [], ejected: [], leaderboard: [], players: [], events: [], me: null, world: w.size };
     const inView = (x, y, r) => x + r > view.x0 && x - r < view.x1 && y + r > view.y0 && y - r < view.y1;
 
-    for (const f of w.food) if (inView(f.x, f.y, 8)) out.food.push({ x: f.x, y: f.y, r: radius(f.mass), color: f.color });
+    for (const f of w.food) if (inView(f.x, f.y, 8)) out.food.push({ id: f.id, x: f.x, y: f.y, r: radius(f.mass), color: f.color });
     for (const e of w.ejected) { const r = radius(e.mass); if (inView(e.x, e.y, r)) out.ejected.push({ id: e.id, x: e.x, y: e.y, r, color: e.color }); }
     for (const v of w.viruses) { const r = radius(v.mass); if (inView(v.x, v.y, r)) out.viruses.push({ id: v.id, x: v.x, y: v.y, r, mass: v.mass }); }
 
@@ -360,7 +361,7 @@
         cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass;
         const r = radius(c.mass);
         if (inView(c.x, c.y, r))
-          out.cells.push({ id: c.id, x: c.x, y: c.y, r, mass: c.mass, color: p.color.css, dark: p.color.dark,
+          out.cells.push({ id: c.id, x: c.x, y: c.y, r, mass: c.mass, color: p.color.css, dark: p.color.dark, skin: p.skin || '',
             name: p.name, isMe: p.id === playerId,
             shield: w.time < (p.fx.shield || 0), admin: p.admin, dashing: w.time < (p.fx.dash || 0),
             mergeIn: (p.id === playerId && p.cells.length > 1) ? Math.max(0, c.mergeAt - w.time) : 0 });
