@@ -119,6 +119,10 @@
     const sound = document.getElementById('set-sound');
     const names = document.getElementById('set-names');
     const minimap = document.getElementById('set-minimap');
+    const visualSkins = document.getElementById('set-visual-skins');
+    const visualStatus = document.getElementById('set-visual-status');
+    const visualFx = document.getElementById('set-visual-fx');
+    const visualAllNames = document.getElementById('set-visual-allnames');
     const adminKey = document.getElementById('set-admin-key');
     const adminLogin = document.getElementById('set-admin-login');
     sound.checked = G.settings.sound; names.checked = G.settings.names;
@@ -126,6 +130,12 @@
     sound.addEventListener('change', () => { G.settings.sound = sound.checked; G.Audio.enabled = sound.checked; });
     names.addEventListener('change', () => { G.settings.names = names.checked; });
     minimap.addEventListener('change', () => { G.settings.minimap = minimap.checked; });
+    const loadBool = (k, fallback) => { try { const v = localStorage.getItem('cr_' + k); return v == null ? fallback : v === '1'; } catch (e) { return fallback; } };
+    const bindBool = (el, key) => { if (!el) return; G.settings[key] = loadBool(key, !!G.settings[key]); el.checked = !!G.settings[key]; el.addEventListener('change', () => { G.settings[key] = el.checked; try { localStorage.setItem('cr_' + key, el.checked ? '1' : '0'); } catch (e) { /* ignore */ } }); };
+    bindBool(visualSkins, 'visualSkins');
+    bindBool(visualStatus, 'visualStatus');
+    bindBool(visualFx, 'visualFx');
+    bindBool(visualAllNames, 'visualAllNames');
     const unlockAdmin = () => {
       const key = adminKey ? adminKey.value.trim() : '';
       if (!key) return;
