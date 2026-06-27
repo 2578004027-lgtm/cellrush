@@ -23,6 +23,8 @@ G.CFG = {
   // eating
   eatRatio: 1.25,            // eater.mass must be >= prey.mass * this
   eatOverlap: 0.6,           // prey center must be this-deep inside eater
+  splitEatRatio: 1.16,       // split attacks should reliably catch visibly smaller targets
+  splitEatOverlap: 0.12,
 
   // split (Space)
   splitMin: 35,
@@ -102,7 +104,7 @@ G.CFG = {
 };
 
 // runtime, user-toggleable settings (changed in the in-game settings menu)
-G.settings = { sound: true, names: true, minimap: true, admin: false, visualSkins: false, visualStatus: false, visualFx: false, visualAllNames: false };
+G.settings = { sound: true, names: true, minimap: true, admin: false, visualSkins: false, visualStatus: false, visualFx: false, visualAllNames: false, visualSqueeze: true };
 
 // WebSocket server. url '' = auto (same origin the page is served from).
 // For a separately-hosted server, set e.g. 'wss://your-host.onrender.com'.

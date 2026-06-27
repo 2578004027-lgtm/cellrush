@@ -128,7 +128,8 @@
     const stack = snap.cells.slice();
     for (const v of snap.viruses) { v._isVirus = true; stack.push(v); }
     stack.sort((a, b) => (a.mass || 0) - (b.mass || 0));
-    for (const o of stack) { if (o._isVirus) this._virus(ctx, o); else this._cell(ctx, o); }
+    const squeeze = G.settings.visualSqueeze ? this._squeezeMap(stack) : null;
+    for (const o of stack) { if (o._isVirus) this._virus(ctx, o); else this._cell(ctx, o, squeeze && squeeze.get(o.id)); }
     this._spawnFx(snap.events); this._drawFx(ctx, dt);
 
     ctx.restore();
@@ -206,8 +207,36 @@
     ctx.restore();
   };
 
-  Render._cell = function (ctx, c) {
-    ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, U.TAU);
+  Render._squeezeMap = function (stack) {
+    const cells = stack.filter((c) => !c._isVirus && c.r > 8);
+    const out = new Map();
+    for (let i = 0; i < cells.length; i++) {
+      const a = cells[i];
+      for (let j = i + 1; j < cells.length; j++) {
+        const b = cells[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.hypot(dx, dy) || 0.001;
+        const near = (a.r + b.r) * 1.02;
+        if (d >= near) continue;
+        const amt = U.clamp((near - d) / Math.max(12, Math.min(a.r, b.r)), 0, 0.18);
+        const ang = Math.atan2(dy, dx);
+        const put = (c, angle) => {
+          const old = out.get(c.id);
+          if (!old || amt > old.amt) out.set(c.id, { amt, angle });
+        };
+        put(a, ang); put(b, ang + Math.PI);
+      }
+    }
+    return out;
+  };
+
+  Render._cell = function (ctx, c, sq) {
+    ctx.beginPath();
+    if (sq && sq.amt > 0.01) {
+      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(sq.angle);
+      ctx.ellipse(0, 0, c.r * (1 - sq.amt), c.r * (1 + sq.amt * 0.55), 0, 0, U.TAU);
+      ctx.restore();
+    } else ctx.arc(c.x, c.y, c.r, 0, U.TAU);
     ctx.fillStyle = c.color; ctx.fill();
     const skin = G.settings.visualSkins ? this._skinImage(c.skin) : null;
     if (skin) {
