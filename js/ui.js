@@ -177,6 +177,7 @@
   UI.localAdminTuning = function () {
     return {
       startMass: G.CFG.startMass,
+      botStartMass: G.CFG.botStartMass || 50,
       mergeMin: G.CFG.mergeMin || 1.2,
       mergeMax: G.CFG.mergeMax || 3,
       splitLaunchRadii: G.CFG.splitLaunchRadii,
@@ -192,7 +193,7 @@
   UI.applyLocalAdminTuning = function (t) {
     if (!t) return;
     const set = (k, v) => { if (typeof v === 'number' && Number.isFinite(v)) G.CFG[k] = v; };
-    set('startMass', t.startMass); set('mergeMin', t.mergeMin); set('mergeMax', t.mergeMax);
+    set('startMass', t.startMass); set('botStartMass', t.botStartMass); set('mergeMin', t.mergeMin); set('mergeMax', t.mergeMax);
     set('splitLaunchRadii', t.splitLaunchRadii); set('splitImpulse', t.splitImpulse); set('splitStartSeparation', t.splitStartSeparation);
     set('foodCount', t.foodCount); set('ejectMax', t.ejectMax); set('virusCount', t.virusCount);
     if (G.CFG.skills && G.CFG.skills.poison) {

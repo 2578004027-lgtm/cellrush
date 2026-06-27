@@ -9,6 +9,7 @@ G.CFG = {
 
   // players / cells
   startMass: 200,
+  botStartMass: 50,          // bots stay lighter so one human room does not become CPU-heavy
   botCount: 24,
   maxCells: 16,
 

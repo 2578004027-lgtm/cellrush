@@ -40,6 +40,7 @@
       color: opts.color || U.randColor(),
       skin: opts.skin || '',
       isBot: !!opts.isBot,
+      spawnMass: opts.startMass || (opts.isBot ? (CFG.botStartMass || CFG.startMass) : CFG.startMass),
       cells: [], input: { tx: 0, ty: 0, split: false, eject: false },
       alive: false, maxMass: 0, bornAt: this.time, ai: {},
       account: '', diamonds: 99999, unlockedSkills: [], poisonUntil: 0, poisonRate: 0, silenceUntil: 0, _growth: null, _magnetUntil: 0, _poisonBomb: null,
@@ -53,10 +54,11 @@
   };
   World.prototype.spawnPlayer = function (p) {
     p.alive = true;
-    p.maxMass = CFG.startMass;
+    const spawnMass = p.spawnMass || CFG.startMass;
+    p.maxMass = spawnMass;
     p.bornAt = this.time;
     const x = U.rand(this.size * 0.1, this.size * 0.9), y = U.rand(this.size * 0.1, this.size * 0.9);
-    p.cells = [this._newCell(p, x, y, CFG.startMass)];
+    p.cells = [this._newCell(p, x, y, spawnMass)];
     p.input.tx = x; p.input.ty = y;
     p.poisonUntil = 0; p.poisonRate = 0; p.silenceUntil = 0; p._growth = null; p._magnetUntil = 0; p._poisonBomb = null;
     for (const k in p.fx) p.fx[k] = 0;

@@ -127,6 +127,7 @@ const world = new api.World();
 const bots = [];
 const TUNABLES = {
   startMass: { path: ['startMass'], min: 35, max: 2000, int: true },
+  botStartMass: { path: ['botStartMass'], min: 20, max: 500, int: true },
   mergeMin: { path: ['mergeMin'], min: 0.3, max: 3 },
   mergeMax: { path: ['mergeMax'], min: 0.5, max: 10 },
   splitLaunchRadii: { path: ['splitLaunchRadii'], min: 0.4, max: 3 },
@@ -169,6 +170,7 @@ function applyAdminTuning(params) {
     while (world.food.length < CFG.foodCount) world.food.push(world._spawnFood());
     while (world.viruses.length > CFG.virusCount) world.viruses.pop();
     while (world.viruses.length < CFG.virusCount) world.viruses.push(world._spawnVirus());
+    for (const b of bots) b.spawnMass = CFG.botStartMass || 50;
   }
   return tuningSnapshot();
 }
@@ -179,7 +181,7 @@ function botSkin() {
   const skins = (CFG.skinPresets || []).filter(Boolean);
   return skins.length ? api.util.pick(skins) : '';
 }
-for (let i = 0; i < CFG.botCount; i++) bots.push(world.addPlayer({ name: api.Bots.name(), color: api.util.randColor(), skin: botSkin(), isBot: true }));
+for (let i = 0; i < CFG.botCount; i++) bots.push(world.addPlayer({ name: api.Bots.name(), color: api.util.randColor(), skin: botSkin(), isBot: true, startMass: CFG.botStartMass || 50 }));
 
 const wss = new WebSocketServer({ server: httpServer });
 let nextId = 1;
@@ -287,7 +289,7 @@ setInterval(() => {
   let dt = (now - lastT) / 1000; lastT = now;
   if (dt > 0.1) dt = 0.1;
   for (const b of bots) {
-    if (!b.alive) { world.spawnPlayer(b); b.name = api.Bots.name(); b.color = api.util.randColor(); b.skin = botSkin(); }
+    if (!b.alive) { b.spawnMass = CFG.botStartMass || 50; world.spawnPlayer(b); b.name = api.Bots.name(); b.color = api.util.randColor(); b.skin = botSkin(); }
     else world.applyInput(b.id, api.Bots.think(world, b));
   }
   world.step(dt);
