@@ -1,18 +1,55 @@
-// CellRush — input. Translates mouse/keys into the {tx,ty,split,eject,skill,...} intent.
+// CellRush - input. Translates mouse/touch/keys into the {tx,ty,split,eject,skill,...} intent.
 (function (G) {
   const Input = {
     mouseX: window.innerWidth / 2, mouseY: window.innerHeight / 2,
     _split: false, _eject: false, _skill: null, _adminGrow: false, _adminShrink: false,
+    _touching: false,
   };
 
   const SKILL_KEYS = { q: 'dash', e: 'shield', r: 'magnet', f: 'merge' };
 
+  function setAim(x, y) {
+    Input.mouseX = Math.max(0, Math.min(window.innerWidth, x));
+    Input.mouseY = Math.max(0, Math.min(window.innerHeight, y));
+  }
+  function isTextInput() {
+    const ae = document.activeElement;
+    return ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA');
+  }
+  function fireButton(btn) {
+    const action = btn.dataset.action;
+    const skill = btn.dataset.skill;
+    if (action === 'split') Input._split = true;
+    else if (action === 'eject') Input._eject = true;
+    else if (skill) Input._skill = skill;
+  }
+
   Input.init = function () {
-    window.addEventListener('mousemove', (e) => { Input.mouseX = e.clientX; Input.mouseY = e.clientY; });
+    window.addEventListener('mousemove', (e) => { setAim(e.clientX, e.clientY); });
+    window.addEventListener('pointerdown', (e) => {
+      if (e.target && e.target.closest && e.target.closest('button,input,.overlay')) return;
+      Input._touching = e.pointerType !== 'mouse';
+      setAim(e.clientX, e.clientY);
+    }, { passive: true });
+    window.addEventListener('pointermove', (e) => {
+      if (e.target && e.target.closest && e.target.closest('button,input,.overlay')) return;
+      if (e.pointerType !== 'mouse' && !Input._touching) return;
+      setAim(e.clientX, e.clientY);
+    }, { passive: true });
+    window.addEventListener('pointerup', (e) => { if (e.pointerType !== 'mouse') Input._touching = false; }, { passive: true });
+    window.addEventListener('touchmove', (e) => {
+      if (!e.touches || !e.touches.length) return;
+      const t = e.touches[0];
+      setAim(t.clientX, t.clientY);
+    }, { passive: true });
+
+    document.querySelectorAll('[data-action], [data-skill]').forEach((btn) => {
+      btn.addEventListener('pointerdown', (e) => { fireButton(btn); e.preventDefault(); });
+      btn.addEventListener('click', (e) => { fireButton(btn); e.preventDefault(); });
+    });
+
     window.addEventListener('keydown', (e) => {
-      // don't hijack typing in the nickname field
-      const ae = document.activeElement;
-      if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+      if (isTextInput()) return;
 
       if (e.code === 'Space') { Input._split = true; e.preventDefault(); return; }
       const k = e.key.toLowerCase();
@@ -23,7 +60,6 @@
     });
   };
 
-  // build the input for one sim tick. one-shot flags are consumed here.
   Input.sample = function (camera) {
     const w = G.Render.screenToWorld(Input.mouseX, Input.mouseY, camera);
     const inp = {

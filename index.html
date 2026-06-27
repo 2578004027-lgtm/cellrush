@@ -9,6 +9,18 @@
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="touch-controls" class="touch-controls" aria-hidden="true">
+  <div class="touch-row touch-row-main">
+    <button type="button" class="touch-btn touch-split" data-action="split">Split</button>
+    <button type="button" class="touch-btn" data-action="eject">W</button>
+  </div>
+  <div class="touch-row touch-row-skills">
+    <button type="button" class="touch-btn" data-skill="dash">Q</button>
+    <button type="button" class="touch-btn" data-skill="shield">E</button>
+    <button type="button" class="touch-btn" data-skill="magnet">R</button>
+    <button type="button" class="touch-btn" data-skill="merge">F</button>
+  </div>
+</div>
 
 <div id="menu" class="overlay menu-overlay">
   <div class="shell-panel">
@@ -36,7 +48,7 @@
       <input id="skin-url" class="menu-input skin-input" maxlength="256" placeholder="Skin image URL or local path" autocomplete="off" spellcheck="false" />
       <button id="play" class="menu-button play-button">Play</button>
       <div id="neterr" class="neterr hidden"></div>
-      <div class="help"><b>Mouse</b> move · <b>Space</b> split · <b>W</b> eject · <b>Q/E/R/F</b> skills</div>
+      <div class="help"><b>Mouse</b> move - <b>Space</b> split - <b>W</b> eject - <b>Q/E/R/F</b> skills</div>
     </section>
 
     <section class="right-panel">
@@ -61,7 +73,7 @@
   </div>
 </div>
 
-<button id="gear" title="Settings (Esc)">⚙</button>
+<button id="gear" title="Settings (Esc)">S</button>
 <div id="settings" class="overlay hidden">
   <div class="settings-panel">
     <nav class="settings-nav">
@@ -74,7 +86,7 @@
       <label class="row"><span>Sound</span><input type="checkbox" id="set-sound" /></label>
       <label class="row"><span>Names</span><input type="checkbox" id="set-names" /></label>
       <label class="row"><span>Minimap</span><input type="checkbox" id="set-minimap" /></label>
-      <label class="row"><span>Admin mode<small>Invincible · no cooldown · [ ] mass</small></span><input type="checkbox" id="set-admin" /></label>
+      <label class="row"><span>Admin mode<small>Invincible - no cooldown - [ ] mass</small></span><input type="checkbox" id="set-admin" /></label>
       <div class="set-help">Skills: <b>Q</b> Dash &nbsp; <b>E</b> Shield &nbsp; <b>R</b> Magnet &nbsp; <b>F</b> Merge</div>
       <button id="resume" class="menu-button play-button">Resume</button>
       <button id="tomenu" class="menu-button ghost">Main menu</button>

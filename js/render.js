@@ -237,37 +237,40 @@
   };
 
   Render._leaderboard = function (snap) {
-    const ctx = this.ctx, lb = snap.leaderboard || [];
-    const w = 208, x = this.w - w - 8, y = 8;
+    const ctx = this.ctx, lb = snap.leaderboard || [], mobile = this.w < 760;
+    const w = mobile ? 154 : 208, x = this.w - w - (mobile ? 6 : 8), y = mobile ? 6 : 8;
+    const maxRows = mobile ? 5 : 10, rowH = mobile ? 18 : 23;
     ctx.save();
     ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = 'rgba(210,210,210,0.92)';
-    ctx.font = '500 24px "Microsoft YaHei", sans-serif';
-    ctx.fillText('Leaderboard', x + w - 8, y + 24);
-    ctx.font = '500 12.5px "Microsoft YaHei", sans-serif';
-    lb.forEach((e, i) => {
-      const rowY = y + 36 + i * 23;
+    ctx.font = (mobile ? '600 15px ' : '500 24px ') + '"Microsoft YaHei", sans-serif';
+    ctx.fillText('Leaderboard', x + w - 6, y + (mobile ? 18 : 24));
+    ctx.font = (mobile ? '500 11px ' : '500 12.5px ') + '"Microsoft YaHei", sans-serif';
+    lb.slice(0, maxRows).forEach((e, i) => {
+      const rowY = y + (mobile ? 31 : 36) + i * rowH;
       let nm = e.name || 'Player';
-      if (nm.length > 14) nm = nm.slice(0, 14) + '...';
-      const mass = Math.floor(e.mass || 0);
-      const label = (i + 1) + '  [' + mass + ']  ' + nm;
-      const tw = Math.min(w - 10, Math.max(92, ctx.measureText(label).width + 12));
+      if (nm.length > (mobile ? 9 : 14)) nm = nm.slice(0, mobile ? 9 : 14) + '...';
+      const label = (i + 1) + ' [' + Math.floor(e.mass || 0) + '] ' + nm;
+      const tw = Math.min(w - 6, Math.max(mobile ? 76 : 92, ctx.measureText(label).width + 10));
       ctx.fillStyle = e.isMe ? 'rgba(28,120,210,0.72)' : 'rgba(37,37,37,0.52)';
-      this._round(ctx, x + w - tw, rowY - 14, tw, 19, 2); ctx.fill();
+      this._round(ctx, x + w - tw, rowY - 13, tw, mobile ? 16 : 19, 2); ctx.fill();
       ctx.fillStyle = e.isMe ? '#ffffff' : 'rgba(245,245,245,0.92)';
-      ctx.fillText(label, x + w - 7, rowY);
+      ctx.fillText(label, x + w - 6, rowY);
     });
     ctx.restore();
   };
 
   Render._minimap = function (snap) {
-    const ctx = this.ctx, s = 148, pad = 16;
-    const x = this.w - s - pad, y = this.h - s - pad, k = s / snap.world;
-    ctx.fillStyle = 'rgba(8,10,24,0.45)'; this._round(ctx, x, y, s, s, 12); ctx.fill();
+    const ctx = this.ctx, mobile = this.w < 760;
+    const s = mobile ? 92 : 148, pad = mobile ? 10 : 16;
+    const x = mobile ? pad : this.w - s - pad;
+    const y = mobile ? 122 : this.h - s - pad;
+    const k = s / snap.world;
+    ctx.fillStyle = 'rgba(8,10,24,0.45)'; this._round(ctx, x, y, s, s, mobile ? 6 : 12); ctx.fill();
     for (const p of snap.players) {
       ctx.fillStyle = p.isMe ? '#7CFFB0' : 'rgba(255,255,255,0.45)';
       ctx.beginPath();
-      ctx.arc(x + p.x * k, y + p.y * k, p.isMe ? 4 : 2 + Math.min(4, p.mass / 500), 0, U.TAU);
+      ctx.arc(x + p.x * k, y + p.y * k, p.isMe ? (mobile ? 3 : 4) : 2 + Math.min(mobile ? 2 : 4, p.mass / 500), 0, U.TAU);
       ctx.fill();
     }
   };
@@ -275,65 +278,68 @@
   // skill bar at bottom-center with cooldown sweep
   Render._skillbar = function (snap) {
     if (!snap.me || !snap.me.skills) return;
-    const ctx = this.ctx, sk = snap.me.skills;
-    const sz = 56, gap = 12, total = sk.length * sz + (sk.length - 1) * gap;
-    let x = this.w / 2 - total / 2, y = this.h - sz - 18;
+    const ctx = this.ctx, sk = snap.me.skills, mobile = this.w < 760;
+    const sz = mobile ? 38 : 56, gap = mobile ? 6 : 12, total = sk.length * sz + (sk.length - 1) * gap;
+    let x = mobile ? 10 : this.w / 2 - total / 2;
+    let y = mobile ? this.h - sz - 12 : this.h - sz - 18;
     for (const s of sk) {
-      this._round(ctx, x, y, sz, sz, 10);
+      this._round(ctx, x, y, sz, sz, mobile ? 6 : 10);
       ctx.fillStyle = 'rgba(8,10,24,0.7)'; ctx.fill();
       ctx.lineWidth = s.active ? 3 : 2;
       ctx.strokeStyle = s.active ? '#fff' : s.color; ctx.stroke();
-      // key + name
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = s.remain > 0 ? 'rgba(220,228,255,0.45)' : s.color;
-      ctx.font = '800 22px sans-serif'; ctx.fillText(s.key, x + sz / 2, y + sz / 2 - 4);
-      ctx.fillStyle = 'rgba(220,228,255,0.7)'; ctx.font = '600 11px "Microsoft YaHei", sans-serif';
-      ctx.fillText(s.name, x + sz / 2, y + sz - 11);
-      // cooldown overlay (dark fill shrinking from top) + seconds
+      ctx.font = '800 ' + (mobile ? 16 : 22) + 'px sans-serif'; ctx.fillText(s.key, x + sz / 2, y + sz / 2 - (mobile ? 1 : 4));
+      if (!mobile) {
+        ctx.fillStyle = 'rgba(220,228,255,0.7)'; ctx.font = '600 11px "Microsoft YaHei", sans-serif';
+        ctx.fillText(s.name, x + sz / 2, y + sz - 11);
+      }
       if (s.remain > 0) {
         const f = Math.min(1, s.remain / s.cd);
-        ctx.save();
-        this._round(ctx, x, y, sz, sz, 10); ctx.clip();
-        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x, y, sz, sz * f);
-        ctx.restore();
-        ctx.fillStyle = '#fff'; ctx.font = '700 16px sans-serif';
-        ctx.fillText(s.remain.toFixed(s.remain < 1 ? 1 : 0), x + sz / 2, y + sz / 2 - 2);
+        ctx.save(); this._round(ctx, x, y, sz, sz, mobile ? 6 : 10); ctx.clip();
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x, y, sz, sz * f); ctx.restore();
+        ctx.fillStyle = '#fff'; ctx.font = '700 ' + (mobile ? 12 : 16) + 'px sans-serif';
+        ctx.fillText(s.remain.toFixed(s.remain < 1 ? 1 : 0), x + sz / 2, y + sz / 2 - 1);
       }
       x += sz + gap;
     }
   };
 
   Render._hud = function (snap) {
-    const ctx = this.ctx, net = snap._net || {};
+    const ctx = this.ctx, net = snap._net || {}, mobile = this.w < 760;
     ctx.save();
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    ctx.font = '600 12.5px "Microsoft YaHei", sans-serif';
+    ctx.font = (mobile ? '600 11px ' : '600 12.5px ') + '"Microsoft YaHei", sans-serif';
     const fps = typeof this.fps === 'number' ? this.fps : 0;
-    const rows = [
+    const rows = mobile ? [
+      'FPS ' + fps,
+      'SNAP ' + (net.snapHz || 0) + 'Hz',
+      'DLT ' + (net.deltaCount || 0),
+    ] : [
       'FPS ' + fps,
       'SNAP ' + (net.snapHz || 0) + 'Hz',
       'JIT ' + (net.jitterMs || 0) + 'ms',
       'DLT ' + (net.deltaCount || 0),
       'BUF ' + (net.bufferMs || 0) + 'ms',
     ];
-    ctx.fillStyle = 'rgba(37,37,37,0.52)';
-    this._round(ctx, 62, 10, 116, 99, 2); ctx.fill();
+    const hx = mobile ? 10 : 62, hy = mobile ? 52 : 10, hw = mobile ? 94 : 116, hh = mobile ? 62 : 99;
+    ctx.fillStyle = 'rgba(37,37,37,0.52)'; this._round(ctx, hx, hy, hw, hh, 2); ctx.fill();
     rows.forEach((r, i) => {
-      const bad = (i === 0 && fps < 45) || (i === 2 && (net.jitterMs || 0) > 35);
+      const bad = (i === 0 && fps < 45) || (!mobile && i === 2 && (net.jitterMs || 0) > 35);
       ctx.fillStyle = bad ? '#ff7a90' : 'rgba(245,245,245,0.92)';
-      ctx.fillText(r, 72, 30 + i * 17);
+      ctx.fillText(r, hx + 9, hy + 20 + i * (mobile ? 14 : 17));
     });
 
     const mass = snap.me ? Math.floor(snap.me.mass) : 0;
     const maxMass = snap.me ? Math.floor(snap.me.maxMass) : 0;
-    const text = 'Mass ' + mass + '   Best ' + maxMass + (snap.me && snap.me.cells > 1 ? '   Cells ' + snap.me.cells : '');
-    const w = Math.max(230, ctx.measureText(text).width + 28);
-    const x = (this.w - w) / 2, y = this.h - 29;
-    ctx.fillStyle = 'rgba(37,37,37,0.52)';
-    this._round(ctx, x, y, w, 24, 2); ctx.fill();
-    ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.font = '500 16px "Microsoft YaHei", sans-serif';
-    ctx.fillText(text, this.w / 2, y + 17);
-    if (snap.me && snap.me.admin) {
+    const text = mobile ? ('Mass ' + mass + '  Best ' + maxMass) : ('Mass ' + mass + '   Best ' + maxMass + (snap.me && snap.me.cells > 1 ? '   Cells ' + snap.me.cells : ''));
+    const w = mobile ? Math.min(this.w - 24, Math.max(210, ctx.measureText(text).width + 20)) : Math.max(230, ctx.measureText(text).width + 28);
+    const x = mobile ? (this.w - w) / 2 : (this.w - w) / 2;
+    const y = mobile ? 10 : this.h - 29;
+    ctx.fillStyle = 'rgba(37,37,37,0.52)'; this._round(ctx, x, y, w, mobile ? 24 : 24, 2); ctx.fill();
+    ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.font = (mobile ? '500 13px ' : '500 16px ') + '"Microsoft YaHei", sans-serif';
+    ctx.fillText(text, this.w / 2, y + (mobile ? 17 : 17));
+    if (snap.me && snap.me.admin && !mobile) {
       ctx.textAlign = 'left'; ctx.fillStyle = '#ffd24f'; ctx.font = '700 13px "Microsoft YaHei", sans-serif';
       ctx.fillText('Admin mode  [ / ] mass', 16, this.h - 60);
     }

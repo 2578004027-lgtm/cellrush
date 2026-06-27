@@ -11,11 +11,11 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
-  height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+  height: 100%; overflow: hidden; background: var(--bg); color: var(--text); touch-action: none;
   font-family: "Microsoft YaHei", "Noto Sans SC", "Segoe UI", system-ui, sans-serif;
   user-select: none; -webkit-font-smoothing: antialiased;
 }
-#game { position: fixed; inset: 0; display: block; cursor: crosshair; }
+#game { position: fixed; inset: 0; display: block; cursor: crosshair; touch-action: none; }
 
 .overlay { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; }
 .overlay.hidden { display: none; }
@@ -120,14 +120,58 @@ html, body {
 .ghost { background: transparent; border-color: rgba(255,255,255,0.16); color: rgba(255,255,255,0.76); }
 .ghost:hover { background: rgba(255,255,255,0.08); }
 
-@media (max-width: 760px) {
-  .shell-panel { width: min(94vw, 420px); height: min(92vh, 660px); grid-template-columns: 1fr; grid-template-rows: 1fr 128px; }
-  .middle-panel { grid-row: 1; border: 0; }
-  .left-panel { grid-row: 2; display: block; height: 128px; padding-top: 0; border-top: 1px solid rgba(0,0,0,0.24); }
-  .left-panel .panel-title { display: none; }
-  .right-panel { display: none; }
-  .skins { height: 128px; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; padding: 20px 14px; gap: 12px; align-content: center; }
-  .swatch { flex: 0 0 auto; width: 64px; height: 64px; }
-  .settings-panel { grid-template-columns: 1fr; height: min(88vh, 520px); }
+.touch-controls {
+  position: fixed; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 8;
+  display: none; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none;
+}
+.touch-row { display: flex; gap: 10px; pointer-events: auto; }
+.touch-btn {
+  width: 54px; height: 54px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(37,37,37,0.62); color: rgba(255,255,255,0.95); font-weight: 800; font-size: 14px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.32); touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.touch-btn:active { background: rgba(22,141,232,0.86); transform: scale(0.96); }
+.touch-split { width: 68px; height: 68px; background: rgba(22,141,232,0.78); font-size: 13px; }
+
+@media (pointer: coarse), (max-width: 760px) {
+  #game { cursor: default; }
+  #gear { width: 38px; height: 38px; left: 10px; top: 10px; font-size: 14px; }
+  .touch-controls { display: flex; }
+  .shell-panel {
+    width: min(94vw, 430px); height: min(92svh, 660px); min-height: 0;
+    grid-template-columns: 1fr; grid-template-rows: minmax(430px, 1fr) 124px;
+  }
+  .middle-panel { grid-row: 1; border: 0; padding-top: 48px; }
+  .left-panel { grid-row: 2; display: block; height: 124px; padding-top: 0; border-top: 1px solid rgba(0,0,0,0.24); }
+  .left-panel .panel-title, .right-panel { display: none; }
+  .panel-title { height: 36px; font-size: 15px; }
+  .brand-title { font-size: 22px; }
+  .avatar-preview { top: 66px; width: 140px; height: 140px; }
+  .menu-input { left: 18px; right: 18px; width: calc(100% - 36px); height: 36px; font-size: 15px; }
+  .name-input { top: 232px; }
+  .skin-input { top: 276px; font-size: 12px; }
+  .play-button { left: 18px; right: 18px; top: 326px; height: 42px; }
+  .help { top: 386px; font-size: 11px; line-height: 1.55; }
+  .neterr { top: 374px; }
+  .skins { height: 124px; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; padding: 18px 14px; gap: 12px; align-content: center; scroll-snap-type: x proximity; }
+  .swatch { flex: 0 0 auto; width: 64px; height: 64px; scroll-snap-align: start; }
+  .settings-panel { width: min(94vw, 430px); height: min(88svh, 520px); grid-template-columns: 1fr; }
   .settings-nav { display: none; }
+  .settings-content { padding: 22px 22px; }
+  .row { min-height: 50px; }
+}
+
+@media (pointer: coarse) and (orientation: landscape), (max-height: 520px) {
+  .shell-panel { width: min(94vw, 760px); height: min(92svh, 430px); grid-template-columns: 172px 1fr; grid-template-rows: 1fr; }
+  .left-panel { grid-column: 1; grid-row: 1; height: 100%; padding-top: 0; border-top: 0; border-right: 1px solid rgba(0,0,0,0.24); }
+  .skins { height: 100%; flex-wrap: wrap; overflow-x: hidden; overflow-y: auto; padding: 14px 12px; gap: 10px; }
+  .swatch { width: 58px; height: 58px; }
+  .middle-panel { grid-column: 2; grid-row: 1; }
+  .avatar-preview { top: 58px; width: 120px; height: 120px; }
+  .name-input { top: 198px; }
+  .skin-input { top: 240px; }
+  .play-button { top: 288px; }
+  .help { top: 342px; }
+  .touch-btn { width: 48px; height: 48px; }
+  .touch-split { width: 60px; height: 60px; }
 }
