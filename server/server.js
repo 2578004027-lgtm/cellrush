@@ -347,7 +347,7 @@ setInterval(() => {
   }
   world.events.length = 0;
   notePerf('snap', msNow() - snapStart);
-}, 1000 / 20);
+}, 1000 / 30);
 
 const PORT = process.env.PORT || 8137;
 httpServer.listen(PORT, () => {

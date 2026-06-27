@@ -2,6 +2,7 @@
 (function (G) {
   const EMPTY = { cells: [], food: [], viruses: [], ejected: [], leaderboard: [], players: [], events: [], me: null, world: G.CFG.worldSize };
   const INTERP_DELAY = 0.075;
+  const INTERP_MAX_DELAY = 0.24;
   const MAX_HISTORY = 30;
 
   function nowSec() { return ((performance && performance.now) ? performance.now() : Date.now()) / 1000; }
@@ -110,6 +111,8 @@
       const variance = this._snapIntervals.reduce((a, b) => a + (b - avg) * (b - avg), 0) / this._snapIntervals.length;
       this.stats.snapHz = avg > 0 ? Math.round(1000 / avg) : 0;
       this.stats.jitterMs = Math.round(Math.sqrt(variance));
+      const adaptive = Math.min(INTERP_MAX_DELAY, Math.max(INTERP_DELAY, INTERP_DELAY + (this.stats.jitterMs / 1000) * 1.8));
+      this.stats.bufferMs = Math.round(adaptive * 1000);
     }
     this._lastSnapAt = t;
     if (typeof serverTime === 'number') {
@@ -194,7 +197,8 @@
   };
   NetTransport.prototype.getSnapshot = function () {
     if (!this.history.length || this._clockOffset == null) return this._consumeEvents(cloneSnap(this.latest || EMPTY, this.stats), this.latest);
-    const target = nowSec() - this._clockOffset - INTERP_DELAY;
+    const delay = Math.min(INTERP_MAX_DELAY, Math.max(INTERP_DELAY, (this.stats.bufferMs || Math.round(INTERP_DELAY * 1000)) / 1000));
+    const target = nowSec() - this._clockOffset - delay;
     let a = null, b = null;
     for (let i = 0; i < this.history.length; i++) {
       const s = this.history[i];

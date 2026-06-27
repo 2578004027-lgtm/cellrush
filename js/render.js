@@ -113,8 +113,16 @@
     ctx.lineWidth = 6 / cam.scale;
     ctx.strokeRect(0, 0, snap.world, snap.world);
 
-    for (const f of snap.food) { ctx.fillStyle = f.color; ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, U.TAU); ctx.fill(); }
-    for (const e of snap.ejected) this._ejected(ctx, e);
+    const cb = this.cullBounds();
+    for (const f of snap.food) {
+      if (f.x < cb.x0 || f.x > cb.x1 || f.y < cb.y0 || f.y > cb.y1) continue;
+      const s = Math.max(3 / cam.scale, f.r * 1.55);
+      ctx.fillStyle = f.color; ctx.fillRect(f.x - s * 0.5, f.y - s * 0.5, s, s);
+    }
+    for (const e of snap.ejected) {
+      if (e.x + e.r < cb.x0 || e.x - e.r > cb.x1 || e.y + e.r < cb.y0 || e.y - e.r > cb.y1) continue;
+      this._ejected(ctx, e);
+    }
 
     // cells + viruses interleaved by mass: big cells cover viruses, small cells hide under them
     const stack = snap.cells.slice();
