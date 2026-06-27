@@ -183,6 +183,7 @@
       splitImpulse: G.CFG.splitImpulse,
       splitStartSeparation: G.CFG.splitStartSeparation,
       foodCount: G.CFG.foodCount,
+      ejectMax: G.CFG.ejectMax || 900,
       virusCount: G.CFG.virusCount,
       poisonDelay: G.CFG.skills.poison.poisonDelay || 3,
       poisonShrink: G.CFG.skills.poison.poisonShrink || 0.18,
@@ -193,7 +194,7 @@
     const set = (k, v) => { if (typeof v === 'number' && Number.isFinite(v)) G.CFG[k] = v; };
     set('startMass', t.startMass); set('mergeMin', t.mergeMin); set('mergeMax', t.mergeMax);
     set('splitLaunchRadii', t.splitLaunchRadii); set('splitImpulse', t.splitImpulse); set('splitStartSeparation', t.splitStartSeparation);
-    set('foodCount', t.foodCount); set('virusCount', t.virusCount);
+    set('foodCount', t.foodCount); set('ejectMax', t.ejectMax); set('virusCount', t.virusCount);
     if (G.CFG.skills && G.CFG.skills.poison) {
       if (typeof t.poisonDelay === 'number') G.CFG.skills.poison.poisonDelay = t.poisonDelay;
       if (typeof t.poisonShrink === 'number') G.CFG.skills.poison.poisonShrink = t.poisonShrink;

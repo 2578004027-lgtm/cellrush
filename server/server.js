@@ -133,6 +133,7 @@ const TUNABLES = {
   splitImpulse: { path: ['splitImpulse'], min: 200, max: 3000, int: true },
   splitStartSeparation: { path: ['splitStartSeparation'], min: 1.4, max: 3 },
   foodCount: { path: ['foodCount'], min: 200, max: 3000, int: true },
+  ejectMax: { path: ['ejectMax'], min: 100, max: 3000, int: true },
   virusCount: { path: ['virusCount'], min: 0, max: 80, int: true },
   poisonDelay: { path: ['skills', 'poison', 'poisonDelay'], min: 0.5, max: 8 },
   poisonShrink: { path: ['skills', 'poison', 'poisonShrink'], min: 0.05, max: 0.9 },
@@ -321,7 +322,7 @@ setInterval(() => {
     ws.send(JSON.stringify({ t: 'snap', time: world.time, snap }));
   }
   world.events.length = 0;
-}, 1000 / 30);
+}, 1000 / 20);
 
 const PORT = process.env.PORT || 8137;
 httpServer.listen(PORT, () => {

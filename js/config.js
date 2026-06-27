@@ -42,6 +42,7 @@ G.CFG = {
   ejectLoss: 18,
   ejectSpeed: 1000,
   ejectTTL: Infinity,        // ejected pellets persist until eaten or used to feed a virus
+  ejectMax: 900,             // hard cap for persistent pellets
 
   // passive mass decay (big cells slowly shrink)
   decayRate: 0.0016,         // fraction of mass lost per second

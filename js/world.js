@@ -190,6 +190,10 @@
     }
   };
 
+  World.prototype._capEjected = function () {
+    const max = CFG.ejectMax || 900;
+    if (this.ejected.length > max) this.ejected.splice(0, this.ejected.length - max);
+  };
   // ---- main tick ----
   World.prototype.step = function (dt) {
     this.time += dt;
@@ -228,6 +232,7 @@
       e.x = U.clamp(e.x, r, this.size - r); e.y = U.clamp(e.y, r, this.size - r);
     }
     this.ejected = this.ejected.filter((e) => e.ttl > 0);
+    this._capEjected();
     for (const v of this.viruses) {
       if (v.vx || v.vy) {
         v.x += v.vx * dt; v.y += v.vy * dt; v.vx *= fr; v.vy *= fr;
@@ -272,7 +277,7 @@
     c.mass = targetMass;
     const color = bomb.color || CFG.skills.poison.color;
     if (lost <= 0) { this.events.push({ type: 'poison', x: c.x, y: c.y, r: radius(c.mass), color }); return; }
-    const count = Math.min(70, Math.max(8, Math.floor(lost / Math.max(6, CFG.ejectMass * 0.75))));
+    const count = Math.min(28, Math.max(8, Math.floor(lost / Math.max(14, CFG.ejectMass * 1.25))));
     const baseR = radius(c.mass);
     for (let i = 0; i < count; i++) {
       const a = U.TAU * (i / count) + U.rand(-0.18, 0.18);
@@ -402,6 +407,7 @@
       });
     }
     if (remEject.size) this.ejected = this.ejected.filter((e) => !remEject.has(e.id));
+    this._capEjected();
 
     // --- cells vs viruses & other cells ---
     H.clear();
