@@ -3,25 +3,26 @@
   let transport = null, last = 0, playing = false, paused = false, camInit = false;
   let frames = 0, fpsAcc = 0;
 
-  function startGame(name, color, skin) {
+  function startGame(name, color, skin, account, password) {
     if (transport) transport.close();
     G.Render._lerp.clear();
     camInit = false; playing = true; paused = false;
     G.Audio.resume();
     transport = new G.NetTransport({
-      name, color, skin,
+      name, color, skin, account, password,
       onWelcome: () => {},
-      onDead: (m) => { playing = false; G.UI.showDeath({ maxMass: m.maxMass }, m.survived || 0); },
-      onClose: () => { if (playing) { playing = false; G.UI.showError('连接已断开。'); } },
-      onError: () => { playing = false; G.UI.showError('连接不上服务器。请先运行 node server/server.js，再打开服务器给出的地址。'); },
+      onAccount: (m) => G.UI.setAccount(m),
+      onDead: (m) => { playing = false; G.UI.showDeath({ maxMass: m.maxMass, diamondsEarned: m.diamondsEarned || 0, diamonds: m.diamonds || 0 }, m.survived || 0); },
+      onClose: () => { if (playing) { playing = false; G.UI.showError('\\u8fde\\u63a5\\u5df2\\u65ad\\u5f00\\u3002'); } },
+      onError: () => { playing = false; G.UI.showError('\\u8fde\\u63a5\\u4e0d\\u4e0a\\u670d\\u52a1\\u5668\\uff0c\\u8bf7\\u5148\\u542f\\u52a8\\u672c\\u5730\\u670d\\u52a1\\u3002'); },
     });
-    if (G.settings.admin) transport.setAdmin(true);
+
   }
 
   function respawn(name, color, skin) {
     if (!transport || !transport.ws || transport.ws.readyState > 1) return startGame(name, color, skin);
     transport.respawnMe(name, color, skin);
-    if (G.settings.admin) transport.setAdmin(true);
+
     camInit = false; playing = true; paused = false;
   }
 
@@ -51,7 +52,8 @@
       onPlay: startGame,
       onRespawn: respawn,
       onPause: (v) => { paused = v; },
-      onAdmin: (on) => { G.settings.admin = on; if (transport) transport.setAdmin(on); },
+      onAdminKey: (key) => { if (transport) transport.adminLogin(key); },
+      onBuySkill: (skill) => { if (transport) transport.buySkill(skill); },
       onBackToMenu: () => { playing = false; paused = false; if (transport) transport.close(); transport = null; G.Render._lerp.clear(); },
       isPlaying: () => playing,
     });

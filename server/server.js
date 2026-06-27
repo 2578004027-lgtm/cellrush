@@ -4,6 +4,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 
 global.window = global;
@@ -14,8 +15,99 @@ for (const n of ['config', 'util', 'world', 'bots']) {
 }
 const api = global.window.G;
 const CFG = api.CFG;
+const ADMIN_KEY = process.env.CELLRUSH_ADMIN_KEY || process.env.ADMIN_KEY || '';
+const ADMIN_USER = (process.env.CELLRUSH_ADMIN_USER || process.env.ADMIN_USER || 'admin').toLowerCase();
+const ADMIN_PASSWORD = process.env.CELLRUSH_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || '13916';
+const DATA_DIR = path.join(__dirname, 'data');
+const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
 
 process.on('uncaughtException', (e) => console.error('[server] uncaught:', (e && e.stack) || e));
+function loadAccounts() {
+  try { return JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf8')); }
+  catch (e) { return { users: {} }; }
+}
+function saveAccounts() {
+  try { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2)); }
+  catch (e) { console.error('[server] account save failed:', e.message); }
+}
+function cleanAccountName(v) {
+  v = (typeof v === 'string' ? v : '').trim().toLowerCase();
+  return /^[a-z0-9_]{3,16}$/.test(v) ? v : '';
+}
+function hashPassword(pass, salt) {
+  return crypto.createHash('sha256').update(salt + ':' + pass).digest('hex');
+}
+function publicAccount(u) {
+  return { name: u.name, diamonds: u.diamonds || 0, unlockedSkills: u.unlockedSkills || [], admin: !!u.admin };
+}
+function attachAccount(p, u) {
+  p.account = u.name;
+  p.diamonds = u.diamonds || 0;
+  p.unlockedSkills = Array.from(new Set(u.unlockedSkills || []));
+}
+function sendAccount(ws, ok, u, error) {
+  if (ws.readyState !== 1) return;
+  const msg = { t: 'account', ok: !!ok };
+  if (u) msg.account = publicAccount(u);
+  if (error) msg.error = error;
+  ws.send(JSON.stringify(msg));
+}
+function loginAccount(p, ws, rawName, rawPass) {
+  const name = cleanAccountName(rawName);
+  const pass = typeof rawPass === 'string' ? rawPass : '';
+  if (!name && !pass) return;
+  if (!name) return sendAccount(ws, false, null, '\u8d26\u53f7\u5fc5\u987b\u662f 3-16 \u4f4d\u82f1\u6587\u3001\u6570\u5b57\u6216\u4e0b\u5212\u7ebf\u3002');
+  if (pass.length < 4 || pass.length > 40) return sendAccount(ws, false, null, '\u5bc6\u7801\u5fc5\u987b\u662f 4-40 \u4f4d\u3002');
+  let u = accounts.users[name];
+  const isAdminLogin = name === ADMIN_USER && pass === ADMIN_PASSWORD;
+  if (isAdminLogin) {
+    const salt = (u && u.salt) || crypto.randomBytes(12).toString('hex');
+    u = accounts.users[name] = {
+      name, salt, passHash: hashPassword(pass, salt), diamonds: 999999,
+      unlockedSkills: Array.from(new Set(CFG.specialSkillOrder || [])), admin: true,
+    };
+    saveAccounts();
+  } else if (!u) {
+    const salt = crypto.randomBytes(12).toString('hex');
+    u = accounts.users[name] = { name, salt, passHash: hashPassword(pass, salt), diamonds: 99999, unlockedSkills: [] };
+    saveAccounts();
+  } else if (u.passHash !== hashPassword(pass, u.salt)) {
+    return sendAccount(ws, false, null, '\u5bc6\u7801\u9519\u8bef\u3002');
+  }
+  if (!u.admin && (u.diamonds || 0) < 99999) { u.diamonds = 99999; saveAccounts(); }
+  attachAccount(p, u);
+  p.admin = !!u.admin;
+  sendAccount(ws, true, u);
+}
+function buySkill(p, ws, skill) {
+  if (!p.account) return sendAccount(ws, false, null, '\u8bf7\u5148\u767b\u5f55\u3002');
+  const def = CFG.skills[skill];
+  if (!def) return sendAccount(ws, false, null, '\u672a\u77e5\u6280\u80fd\u3002');
+  const u = accounts.users[p.account];
+  if (!u) return sendAccount(ws, false, null, '\u8bf7\u5148\u767b\u5f55\u3002');
+  u.unlockedSkills = Array.from(new Set(u.unlockedSkills || []));
+  if (!u.unlockedSkills.includes(skill)) {
+    const cost = def.cost || 0;
+    if ((u.diamonds || 0) < cost) return sendAccount(ws, false, u, '\u94bb\u77f3\u4e0d\u8db3\u3002');
+    u.diamonds = (u.diamonds || 0) - cost;
+    u.unlockedSkills.push(skill);
+    saveAccounts();
+  }
+  if (!u.admin && (u.diamonds || 0) < 99999) { u.diamonds = 99999; saveAccounts(); }
+  attachAccount(p, u);
+  sendAccount(ws, true, u);
+}
+function awardDiamonds(p, amount) {
+  if (!p || !p.account || amount <= 0) return 0;
+  const u = accounts.users[p.account];
+  if (!u) return 0;
+  u.diamonds = (u.diamonds || 0) + amount;
+  saveAccounts();
+  if (!u.admin && (u.diamonds || 0) < 99999) { u.diamonds = 99999; saveAccounts(); }
+  attachAccount(p, u);
+  return amount;
+}
+const accounts = loadAccounts();
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
   '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.task': 'application/octet-stream' };
@@ -111,7 +203,7 @@ function applyNearbyDeltas(client, snap) {
 
 wss.on('connection', (ws) => {
   const id = 'h' + (nextId++);
-  world.addPlayer({ id, name: '玩家', color: api.util.randColor(), isBot: false });
+  world.addPlayer({ id, name: 'Player', color: api.util.randColor(), isBot: false });
   const client = makeClient(id);
   clients.set(ws, client);
   ws.send(JSON.stringify({ t: 'welcome', id, world: world.size }));
@@ -119,10 +211,18 @@ wss.on('connection', (ws) => {
   ws.on('message', (raw) => {
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     const p = world.players.get(id); if (!p) return;
-    if (m.t === 'join') { p.name = (m.name || '玩家').slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin); }
+    if (m.t === 'join') { p.name = (typeof m.name === 'string' ? m.name : 'Player').slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin); loginAccount(p, ws, m.account, m.password); }
     else if (m.t === 'input') { world.applyInput(id, m); }
     else if (m.t === 'respawn') { if (m.name) p.name = ('' + m.name).slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin); world.spawnPlayer(p); client.deadNotified = false; }
-    else if (m.t === 'admin') { p.admin = !!m.on; }
+    else if (m.t === 'adminAuth') {
+      const ok = !!(ADMIN_KEY && typeof m.key === 'string' && m.key === ADMIN_KEY);
+      p.admin = ok;
+      if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'adminAuth', ok }));
+    } else if (m.t === 'buySkill') {
+      buySkill(p, ws, m.skill);
+    } else if (m.t === 'admin') {
+      if (p.admin && m.on === false) p.admin = false;
+    }
   });
   ws.on('close', () => { world.removePlayer(id); clients.delete(ws); });
   ws.on('error', () => {});
@@ -142,7 +242,10 @@ setInterval(() => {
     const p = world.players.get(c.id);
     if (p && !p.alive && !c.deadNotified) {
       c.deadNotified = true;
-      if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'dead', maxMass: p.maxMass, survived: world.time - p.bornAt }));
+      const survived = world.time - p.bornAt;
+      const reward = Math.min(35, Math.max(1, Math.floor((p.maxMass || 0) / 120) + Math.floor(survived / 60)));
+      const earned = awardDiamonds(p, reward);
+      if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'dead', maxMass: p.maxMass, survived, diamondsEarned: earned, diamonds: p.diamonds || 0 }));
     }
   }
 }, 1000 / 30);

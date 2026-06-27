@@ -5,14 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>CellRush</title>
 <link rel="icon" href="data:," />
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css?v=20260627-10" />
+<script>
+window.addEventListener('error', function (e) {
+  var box = document.getElementById('client-error-overlay');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'client-error-overlay';
+    box.style.cssText = 'position:fixed;left:12px;right:12px;top:12px;z-index:99999;background:#24080d;color:#fff;border:1px solid #ff6b8a;padding:10px 12px;font:13px/1.4 monospace;white-space:pre-wrap;';
+    document.body.appendChild(box);
+  }
+  box.textContent = '\u5ba2\u6237\u7aef\u9519\u8bef: ' + (e.message || 'unknown') + '\n' + ((e.filename || '') + ':' + (e.lineno || 0));
+});
+</script>
 </head>
 <body>
 <canvas id="game"></canvas>
 <div id="touch-stick" class="touch-stick"><div id="touch-stick-knob" class="touch-stick-knob"></div></div>
 <div id="touch-controls" class="touch-controls" aria-hidden="true">
   <div class="touch-row touch-row-main">
-    <button type="button" class="touch-btn touch-split" data-action="split">Split</button>
+    <button type="button" class="touch-btn touch-split" data-action="split">&#20998;&#35010;</button>
     <button type="button" class="touch-btn" data-action="eject">W</button>
   </div>
   <div class="touch-row touch-row-skills">
@@ -21,88 +33,107 @@
     <button type="button" class="touch-btn" data-skill="magnet">R</button>
     <button type="button" class="touch-btn" data-skill="merge">F</button>
   </div>
+  <div class="touch-row touch-row-specials">
+    <button type="button" class="touch-btn" data-skill="revenge">1</button>
+    <button type="button" class="touch-btn" data-skill="grow">2</button>
+    <button type="button" class="touch-btn" data-skill="thorn">3</button>
+    <button type="button" class="touch-btn" data-skill="poison">4</button>
+    <button type="button" class="touch-btn" data-skill="silence">5</button>
+  </div>
 </div>
 
 <div id="menu" class="overlay menu-overlay">
   <div class="shell-panel">
     <section class="left-panel">
-      <div class="panel-title">Skins</div>
+      <div class="panel-title">&#30382;&#32932;</div>
       <div id="skins" class="skins">
-        <button type="button" class="swatch sel" data-skin="" title="Pure">Pure</button>
-        <button type="button" class="swatch" data-skin="/assets/skins/ring.svg" style="background-image:url('/assets/skins/ring.svg')" title="Ring">Ring</button>
-        <button type="button" class="swatch" data-skin="/assets/skins/halo.svg" style="background-image:url('/assets/skins/halo.svg')" title="Halo">Halo</button>
-        <button type="button" class="swatch" data-skin="/assets/skins/circles.svg" style="background-image:url('/assets/skins/circles.svg')" title="Circles">Cir</button>
-        <button type="button" class="swatch" data-skin="/assets/skins/wolf.svg" style="background-image:url('/assets/skins/wolf.svg')" title="Wolf">Wolf</button>
-        <button type="button" class="swatch" data-skin="/assets/skins/dragon.svg" style="background-image:url('/assets/skins/dragon.svg')" title="Dragon">Drag</button>
-        <button type="button" class="swatch" data-skin="/assets/skins/magatama.svg" style="background-image:url('/assets/skins/magatama.svg')" title="Magatama">Mag</button>
-        <button type="button" class="swatch" data-skin="/assets/skins/ghost.svg" style="background-image:url('/assets/skins/ghost.svg')" title="Ghost">Ghost</button>
-        <button type="button" class="swatch" data-skin="/assets/skins/bat.svg" style="background-image:url('/assets/skins/bat.svg')" title="Bat">Bat</button>
-        <button type="button" class="swatch" data-skin="/assets/skins/daemon.svg" style="background-image:url('/assets/skins/daemon.svg')" title="Daemon">Dae</button>
-        <button type="button" class="swatch" data-skin="/assets/skins/star.svg" style="background-image:url('/assets/skins/star.svg')" title="Star">Star</button>
+        <button type="button" class="swatch sel" data-skin="" title="&#32431;&#33394;">&#32431;&#33394;</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/ring.svg" style="background-image:url('/assets/skins/ring.svg')" title="&#22278;&#29615;">&#22278;&#29615;</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/halo.svg" style="background-image:url('/assets/skins/halo.svg')" title="&#20809;&#29615;">&#20809;&#29615;</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/circles.svg" style="background-image:url('/assets/skins/circles.svg')" title="&#22278;&#28857;">&#22278;&#28857;</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/wolf.svg" style="background-image:url('/assets/skins/wolf.svg')" title="&#29436;">&#29436;</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/dragon.svg" style="background-image:url('/assets/skins/dragon.svg')" title="&#40857;">&#40857;</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/magatama.svg" style="background-image:url('/assets/skins/magatama.svg')" title="&#21246;&#29577;">&#21246;&#29577;</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/ghost.svg" style="background-image:url('/assets/skins/ghost.svg')" title="&#24189;&#28789;">&#24189;&#28789;</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/bat.svg" style="background-image:url('/assets/skins/bat.svg')" title="&#34649;&#34656;">&#34649;&#34656;</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/daemon.svg" style="background-image:url('/assets/skins/daemon.svg')" title="&#24694;&#39764;">&#24694;&#39764;</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/star.svg" style="background-image:url('/assets/skins/star.svg')" title="&#26143;&#26143;">&#26143;&#26143;</button>
       </div>
     </section>
 
     <section class="middle-panel">
       <div class="panel-title brand-title">CellRush</div>
       <div class="avatar-preview" id="avatar-preview"></div>
-      <input id="name" class="menu-input name-input" maxlength="14" placeholder="Nickname" autocomplete="off" spellcheck="false" />
-      <input id="skin-url" class="menu-input skin-input" maxlength="256" placeholder="Skin image URL or local path" autocomplete="off" spellcheck="false" />
-      <button id="play" class="menu-button play-button">Play</button>
+      <input id="name" class="menu-input name-input" maxlength="14" placeholder="&#26165;&#31216;" autocomplete="off" spellcheck="false" />
+      <input id="skin-url" class="menu-input skin-input" maxlength="256" placeholder="&#30382;&#32932;&#22270;&#29255;&#22320;&#22336;&#25110;&#26412;&#22320;&#36335;&#24452;" autocomplete="off" spellcheck="false" />
+      <input id="account" class="menu-input account-input" maxlength="16" placeholder="&#36134;&#21495;" autocomplete="username" spellcheck="false" />
+      <input id="password" class="menu-input password-input" maxlength="40" placeholder="&#23494;&#30721;" type="password" autocomplete="current-password" spellcheck="false" />
+      <button id="play" class="menu-button play-button">&#24320;&#22987;&#28216;&#25103;</button>
       <div id="neterr" class="neterr hidden"></div>
-      <div class="help"><b>Mouse</b> move - <b>Space</b> split - <b>W</b> eject - <b>Q/E/R/F</b> skills</div>
+      <div class="help"><b>&#31354;&#26684;</b> &#20998;&#35010; - <b>W</b> &#21520;&#23394;&#23376; - <b>Q/E/R/F</b> &#22522;&#30784;&#25216;&#33021; - <b>1-5</b> &#29305;&#27530;&#25216;&#33021;</div>
     </section>
 
     <section class="right-panel">
-      <div class="panel-title">Rooms</div>
+      <div class="panel-title">&#25151;&#38388;</div>
       <div class="server-options">
-        <button class="server-pill active">Shanghai</button>
-        <button class="server-pill">Local</button>
+        <button class="server-pill active">&#19978;&#28023;</button>
+        <button class="server-pill">&#26412;&#22320;</button>
       </div>
       <ul class="room-list">
-        <li class="active"><span>Default Room</span><b>Online</b></li>
-        <li><span>Practice Room</span><b>Bots</b></li>
+        <li class="active"><span>&#40664;&#35748;&#25151;&#38388;</span><b>&#22312;&#32447;</b></li>
+        <li><span>&#32451;&#20064;&#25151;&#38388;</span><b>&#20154;&#26426;</b></li>
       </ul>
-    </section>
+      <div class="skill-intro">
+        <b>&#29305;&#27530;&#25216;&#33021;</b>
+        <span><em>1</em>&#21453;&#22124;&#65306;&#25216;&#33021;&#26399;&#38388;&#34987;&#21507;&#20250;&#21453;&#25250;</span>
+        <span><em>2</em>&#21464;&#22823;&#65306;&#30701;&#26102;&#38388;&#21464;&#22823;&#65292;&#32467;&#26463;&#21464;&#22238;</span>
+        <span><em>3</em>&#21520;&#21050;&#65306;&#21520;&#20986;&#19968;&#20010;&#32511;&#21050;</span>
+        <span><em>4</em>&#21520;&#27602;&#65306;&#19981;&#20998;&#35010;&#23601;&#21464;&#23567;&#24182;&#29190;&#23394;&#23376;</span>
+        <span><em>5</em>&#38745;&#40664;&#65306;&#23567;&#23394;&#23376;&#21629;&#20013;&#21518;&#31105;&#27490;&#20998;&#35010;</span>
+        <small>&#26242;&#26102;&#20840;&#37096;&#24320;&#25918;&#65292;&#28216;&#23458; CD &#26356;&#20037;</small>
+      </div>    </section>
   </div>
 </div>
 
 <div id="death" class="overlay hidden">
   <div class="dialog-panel">
-    <h2>You were eaten</h2>
+    <h2>&#20320;&#34987;&#21507;&#25481;&#20102;</h2>
     <div id="death-stats" class="stats"></div>
-    <button id="respawn" class="menu-button play-button">Respawn</button>
+    <button id="respawn" class="menu-button play-button">&#22797;&#27963;</button>
   </div>
 </div>
 
-<button id="gear" title="Settings (Esc)">S</button>
+<button id="gear" title="&#35774;&#32622; (Esc)">S</button>
 <div id="settings" class="overlay hidden">
   <div class="settings-panel">
     <nav class="settings-nav">
-      <button class="active">View</button>
-      <button>Control</button>
-      <button>Audio</button>
+      <button class="active">&#30011;&#38754;</button>
+      <button>&#25511;&#21046;</button>
+      <button>&#22768;&#38899;</button>
     </nav>
     <div class="settings-content">
-      <h2>Settings</h2>
-      <label class="row"><span>Sound</span><input type="checkbox" id="set-sound" /></label>
-      <label class="row"><span>Names</span><input type="checkbox" id="set-names" /></label>
-      <label class="row"><span>Minimap</span><input type="checkbox" id="set-minimap" /></label>
-      <label class="row"><span>Admin mode<small>Invincible - no cooldown - [ ] mass</small></span><input type="checkbox" id="set-admin" /></label>
-      <div class="set-help">Skills: <b>Q</b> Dash &nbsp; <b>E</b> Shield &nbsp; <b>R</b> Magnet &nbsp; <b>F</b> Merge</div>
-      <button id="resume" class="menu-button play-button">Resume</button>
-      <button id="tomenu" class="menu-button ghost">Main menu</button>
+      <h2>&#35774;&#32622;</h2>
+      <label class="row"><span>&#22768;&#38899;</span><input type="checkbox" id="set-sound" /></label>
+      <label class="row"><span>&#21517;&#31216;</span><input type="checkbox" id="set-names" /></label>
+      <label class="row"><span>&#23567;&#22320;&#22270;</span><input type="checkbox" id="set-minimap" /></label>
+      <div class="row admin-row"><span>&#31649;&#29702;&#21592;&#23494;&#38053;<small>&#26381;&#21153;&#31471;&#39564;&#35777;</small></span><div class="admin-auth"><input id="set-admin-key" type="password" autocomplete="off" spellcheck="false" /><button id="set-admin-login" type="button">&#35299;&#38145;</button></div></div>
+      <div id="account-status" class="account-status">&#28216;&#23458; - &#38075;&#30707; 99999</div>
+      <div id="skill-shop" class="skill-shop"></div>
+      <div class="set-help">&#22522;&#30784;&#65306; <b>Q</b> &#20914;&#21050; &nbsp; <b>E</b> &#25252;&#30462; &nbsp; <b>R</b> &#30913;&#21560; &nbsp; <b>F</b> &#21512;&#20307;<br>&#29305;&#27530;&#65306; <b>1</b> &#21453;&#22124; &nbsp; <b>2</b> &#21464;&#22823; &nbsp; <b>3</b> &#21520;&#21050; &nbsp; <b>4</b> &#21520;&#27602; &nbsp; <b>5</b> &#38745;&#40664;</div>
+      <button id="resume" class="menu-button play-button">&#32487;&#32493;</button>
+      <button id="tomenu" class="menu-button ghost">&#20027;&#33756;&#21333;</button>
     </div>
   </div>
 </div>
 
-<script src="js/config.js"></script>
-<script src="js/util.js"></script>
-<script src="js/world.js"></script>
-<script src="js/input.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/render.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/transport-net.js"></script>
-<script src="js/main.js"></script>
+<script src="js/config.js?v=20260627-10"></script>
+<script src="js/util.js?v=20260627-10"></script>
+<script src="js/world.js?v=20260627-10"></script>
+<script src="js/input.js?v=20260627-10"></script>
+<script src="js/audio.js?v=20260627-10"></script>
+<script src="js/render.js?v=20260627-10"></script>
+<script src="js/ui.js?v=20260627-10"></script>
+<script src="js/transport-net.js?v=20260627-10"></script>
+<script src="js/main.js?v=20260627-10"></script>
 </body>
 </html>

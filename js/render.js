@@ -1,4 +1,4 @@
-// CellRush — all canvas rendering. Reads snapshots; never touches the sim.
+// CellRush - all canvas rendering. Reads snapshots; never touches the sim.
 // Jitter fix: entities are eased toward their latest sim position every render
 // frame (framerate-independent), and the camera is locked to the player's
 // smoothed centroid, so neither you nor enemies stutter at any refresh rate.
@@ -21,7 +21,7 @@
     window.addEventListener('resize', () => this.resize());
   };
   Render.resize = function () {
-    this.dpr = 1;   // render at CSS resolution (1x) for max fps — biggest fill-rate win on HiDPI
+    this.dpr = 1;   // render at CSS resolution (1x) for max fps; biggest fill-rate win on HiDPI
     this.w = window.innerWidth; this.h = window.innerHeight;
     this.canvas.width = Math.floor(this.w * this.dpr);
     this.canvas.height = Math.floor(this.h * this.dpr);
@@ -114,7 +114,7 @@
     ctx.strokeRect(0, 0, snap.world, snap.world);
 
     for (const f of snap.food) { ctx.fillStyle = f.color; ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, U.TAU); ctx.fill(); }
-    for (const e of snap.ejected) { ctx.fillStyle = e.color; ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, U.TAU); ctx.fill(); }
+    for (const e of snap.ejected) this._ejected(ctx, e);
 
     // cells + viruses interleaved by mass: big cells cover viruses, small cells hide under them
     const stack = snap.cells.slice();
@@ -132,6 +132,32 @@
     this._feedPanel(dt);
   };
 
+  Render._ejected = function (ctx, e) {
+    if (e.kind === 'thorn') {
+      const spikes = 14, r = Math.max(e.r, 10), ir = r * 0.58, a0 = e.angle || 0;
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.rotate(a0);
+      ctx.beginPath();
+      for (let i = 0; i < spikes * 2; i++) {
+        const a = Math.PI * i / spikes;
+        const rr = (i % 2) ? ir : r * 1.35;
+        const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+        if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = e.color || '#76ff45'; ctx.fill();
+      ctx.lineWidth = Math.max(2, r * 0.12); ctx.strokeStyle = '#249b38'; ctx.stroke();
+      ctx.restore();
+      return;
+    }
+    ctx.fillStyle = e.color;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, U.TAU); ctx.fill();
+    if (e.kind === 'silence') {
+      ctx.lineWidth = Math.max(1.5, e.r * 0.22); ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(e.x - e.r * 0.45, e.y + e.r * 0.45); ctx.lineTo(e.x + e.r * 0.45, e.y - e.r * 0.45); ctx.stroke();
+    }
+  };
   Render._grid = function (ctx) {
     const v = this.viewBounds(), step = 50, world = CFG.worldSize;
     const x0 = Math.floor(v.x0 / step) * step, x1 = Math.ceil(v.x1 / step) * step;
@@ -185,6 +211,18 @@
     ctx.lineWidth = Math.max(2, c.r * 0.05);
     ctx.strokeStyle = c.dark || 'rgba(0,0,0,0.25)'; ctx.stroke();
 
+    if (c.revenge) {
+      ctx.beginPath(); ctx.arc(c.x, c.y, c.r + 7 / this.camera.scale + c.r * 0.06, 0, U.TAU);
+      ctx.lineWidth = Math.max(2, c.r * 0.09); ctx.strokeStyle = 'rgba(255,107,138,0.9)'; ctx.stroke();
+    }
+    if (c.poisoned) {
+      ctx.beginPath(); ctx.arc(c.x, c.y, c.r + 4 / this.camera.scale, 0, U.TAU);
+      ctx.lineWidth = Math.max(2, c.r * 0.06); ctx.strokeStyle = 'rgba(49,212,106,0.85)'; ctx.stroke();
+    }
+    if (c.silenced) {
+      ctx.beginPath(); ctx.arc(c.x, c.y, c.r + 11 / this.camera.scale, 0, U.TAU);
+      ctx.lineWidth = Math.max(2, c.r * 0.055); ctx.strokeStyle = 'rgba(138,160,255,0.9)'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
+    }
     if (c.shield) {
       ctx.beginPath(); ctx.arc(c.x, c.y, c.r + 6 / this.camera.scale + c.r * 0.06, 0, U.TAU);
       ctx.lineWidth = Math.max(2, c.r * 0.09); ctx.strokeStyle = 'rgba(108,240,255,0.9)'; ctx.stroke();
@@ -194,7 +232,7 @@
       ctx.lineWidth = Math.max(2, c.r * 0.07); ctx.strokeStyle = 'rgba(255,210,80,0.95)'; ctx.setLineDash([8, 6]); ctx.stroke(); ctx.setLineDash([]);
     }
     if (c.mergeIn && c.mergeIn > 0.05) {            // can't re-merge yet -> countdown arc + seconds
-      const frac = U.clamp(c.mergeIn / 22, 0, 1);
+      const frac = U.clamp(c.mergeIn / (CFG.mergeMax || 8), 0, 1);
       ctx.beginPath();
       ctx.arc(c.x, c.y, c.r + 5 / this.camera.scale, -Math.PI / 2, -Math.PI / 2 + U.TAU * frac);
       ctx.lineWidth = Math.max(2, c.r * 0.07); ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.stroke();
@@ -243,9 +281,14 @@
     if (!events) return;
     for (const ev of events) {
       let msg = null;
-      if (ev.type === 'split') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 2.6, age: 0, ttl: 0.40, color: ev.color }); msg = 'Split burst'; }
-      else if (ev.type === 'merge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 1.9, r1: ev.r * 0.6, age: 0, ttl: 0.40, color: ev.color, flash: true }); msg = 'Cells merged'; }
-      else if (ev.type === 'pop') { for (let i = 0; i < 3; i++) this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * (2.4 + i), age: -i * 0.06, ttl: 0.55, color: ev.color }); msg = 'Virus pop'; }
+      if (ev.type === 'split') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 2.6, age: 0, ttl: 0.40, color: ev.color }); msg = '\u5206\u88c2'; }
+      else if (ev.type === 'merge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 1.9, r1: ev.r * 0.6, age: 0, ttl: 0.40, color: ev.color, flash: true }); msg = '\u5408\u4f53\u5b8c\u6210'; }
+      else if (ev.type === 'pop') { for (let i = 0; i < 3; i++) this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * (2.4 + i), age: -i * 0.06, ttl: 0.55, color: ev.color }); msg = '\u7eff\u523a\u7206\u5f00'; }
+      else if (ev.type === 'revenge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.7, r1: ev.r * 2.2, age: 0, ttl: 0.45, color: ev.color }); msg = '\u53cd\u566c\u6210\u529f'; }
+      else if (ev.type === 'grow') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 1.8, age: 0, ttl: 0.55, color: ev.color }); msg = '\u53d8\u5927'; }
+      else if (ev.type === 'thorn') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 2.5, age: 0, ttl: 0.42, color: ev.color }); msg = '\u5410\u523a'; }
+      else if (ev.type === 'poison') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 2.0, age: 0, ttl: 0.5, color: ev.color }); msg = '\u4e2d\u6bd2'; }
+      else if (ev.type === 'silence') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 1.8, r1: ev.r * 0.8, age: 0, ttl: 0.45, color: ev.color }); msg = '\u9759\u9ed8'; }
       if (msg && (!this._feed.length || this._feed[this._feed.length - 1].text !== msg || this._feed[this._feed.length - 1].age > 0.5)) {
         this._feed.push({ text: msg, age: 0, ttl: 3.2 });
         if (this._feed.length > 6) this._feed.shift();
@@ -285,7 +328,7 @@
     ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = 'rgba(210,210,210,0.92)';
     ctx.font = (mobile ? '600 15px ' : '500 24px ') + '"Microsoft YaHei", sans-serif';
-    ctx.fillText('Leaderboard', x + w - 6, y + (mobile ? 18 : 24));
+    ctx.fillText('\u6392\u884c\u699c', x + w - 6, y + (mobile ? 18 : 24));
     ctx.font = (mobile ? '500 11px ' : '500 12.5px ') + '"Microsoft YaHei", sans-serif';
     lb.slice(0, maxRows).forEach((e, i) => {
       const rowY = y + (mobile ? 31 : 36) + i * rowH;
@@ -341,30 +384,44 @@
   // skill bar at bottom-center with cooldown sweep
   Render._skillbar = function (snap) {
     if (!snap.me || !snap.me.skills) return;
-    const ctx = this.ctx, sk = snap.me.skills, mobile = this.w < 760;
-    const sz = mobile ? 38 : 56, gap = mobile ? 6 : 12, total = sk.length * sz + (sk.length - 1) * gap;
-    let x = mobile ? 10 : this.w / 2 - total / 2;
-    let y = mobile ? this.h - sz - 12 : this.h - sz - 18;
-    for (const s of sk) {
-      this._round(ctx, x, y, sz, sz, mobile ? 6 : 10);
-      ctx.fillStyle = 'rgba(8,10,24,0.7)'; ctx.fill();
-      ctx.lineWidth = s.active ? 3 : 2;
-      ctx.strokeStyle = s.active ? '#fff' : s.color; ctx.stroke();
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = s.remain > 0 ? 'rgba(220,228,255,0.45)' : s.color;
-      ctx.font = '800 ' + (mobile ? 16 : 22) + 'px sans-serif'; ctx.fillText(s.key, x + sz / 2, y + sz / 2 - (mobile ? 1 : 4));
-      if (!mobile) {
-        ctx.fillStyle = 'rgba(220,228,255,0.7)'; ctx.font = '600 11px "Microsoft YaHei", sans-serif';
-        ctx.fillText(s.name, x + sz / 2, y + sz - 11);
+    const ctx = this.ctx, mobile = this.w < 760;
+    const drawRow = (sk, y, sz, gap, lockText) => {
+      const total = sk.length * sz + (sk.length - 1) * gap;
+      let x = mobile ? 10 : this.w / 2 - total / 2;
+      for (const s of sk) {
+        this._round(ctx, x, y, sz, sz, mobile ? 6 : 10);
+        ctx.fillStyle = 'rgba(8,10,24,0.7)'; ctx.fill();
+        ctx.lineWidth = s.active ? 3 : 2;
+        ctx.strokeStyle = s.active ? '#fff' : s.color; ctx.stroke();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = s.locked ? 'rgba(220,228,255,0.25)' : (s.remain > 0 ? 'rgba(220,228,255,0.45)' : s.color);
+        ctx.font = '800 ' + Math.max(12, sz * 0.4) + 'px sans-serif';
+        ctx.fillText(s.key, x + sz / 2, y + sz / 2 - (mobile ? 1 : 4));
+        if (sz >= 30) {
+          ctx.fillStyle = 'rgba(220,228,255,0.78)';
+          ctx.font = '600 ' + (mobile ? '8.5px ' : '10px ') + '"Microsoft YaHei", sans-serif';
+          ctx.fillText(s.name, x + sz / 2, y + sz - (mobile ? 6 : 10));
+        }
+        if (s.locked) {
+          ctx.fillStyle = 'rgba(0,0,0,0.58)'; this._round(ctx, x, y, sz, sz, mobile ? 6 : 10); ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.font = '800 ' + Math.max(9, sz * 0.23) + 'px sans-serif';
+          ctx.fillText(lockText || '\u9501', x + sz / 2, y + sz / 2 + 1);
+        } else if (s.remain > 0) {
+          const f = Math.min(1, s.remain / s.cd);
+          ctx.save(); this._round(ctx, x, y, sz, sz, mobile ? 6 : 10); ctx.clip();
+          ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x, y, sz, sz * f); ctx.restore();
+          ctx.fillStyle = '#fff'; ctx.font = '700 ' + Math.max(10, sz * 0.28) + 'px sans-serif';
+          ctx.fillText(s.remain.toFixed(s.remain < 1 ? 1 : 0), x + sz / 2, y + sz / 2 - 1);
+        }
+        x += sz + gap;
       }
-      if (s.remain > 0) {
-        const f = Math.min(1, s.remain / s.cd);
-        ctx.save(); this._round(ctx, x, y, sz, sz, mobile ? 6 : 10); ctx.clip();
-        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x, y, sz, sz * f); ctx.restore();
-        ctx.fillStyle = '#fff'; ctx.font = '700 ' + (mobile ? 12 : 16) + 'px sans-serif';
-        ctx.fillText(s.remain.toFixed(s.remain < 1 ? 1 : 0), x + sz / 2, y + sz / 2 - 1);
-      }
-      x += sz + gap;
+    };
+    const baseSz = mobile ? 38 : 56, gap = mobile ? 6 : 12;
+    const baseY = mobile ? this.h - baseSz - 12 : this.h - baseSz - 18;
+    drawRow(snap.me.skills || [], baseY, baseSz, gap, '\u9501');
+    if (snap.me.specials && snap.me.specials.length) {
+      const spSz = mobile ? 30 : 38;
+      drawRow(snap.me.specials, baseY - spSz - (mobile ? 6 : 8), spSz, mobile ? 5 : 8, '\u4e70');
     }
   };
 
@@ -396,7 +453,8 @@
     const mass = snap.me ? Math.floor(snap.me.mass) : 0;
     const maxMass = snap.me ? Math.floor(snap.me.maxMass) : 0;
     const sector = snap.me ? this._sectorInfo(snap.me.x, snap.me.y, snap.world || CFG.worldSize).id : 0;
-    const text = mobile ? ('Mass ' + mass + '  Best ' + maxMass + (sector ? '  S' + sector : '')) : ('Mass ' + mass + '   Best ' + maxMass + (sector ? '   Sector ' + sector : '') + (snap.me && snap.me.cells > 1 ? '   Cells ' + snap.me.cells : ''));
+    const dia = snap.me ? Math.floor(snap.me.diamonds || 0) : 0;
+    const text = mobile ? ('\u8d28\u91cf ' + mass + '  \u94bb\u77f3 ' + dia + (sector ? '  S' + sector : '')) : ('\u8d28\u91cf ' + mass + '   \u6700\u9ad8 ' + maxMass + '   \u94bb\u77f3 ' + dia + (sector ? '   \u533a\u57df ' + sector : '') + (snap.me && snap.me.cells > 1 ? '   \u5206\u8eab ' + snap.me.cells : ''));
     const w = mobile ? Math.min(this.w - 24, Math.max(210, ctx.measureText(text).width + 20)) : Math.max(230, ctx.measureText(text).width + 28);
     const x = mobile ? (this.w - w) / 2 : (this.w - w) / 2;
     const y = mobile ? 10 : this.h - 29;
@@ -405,12 +463,10 @@
     ctx.fillText(text, this.w / 2, y + (mobile ? 17 : 17));
     if (snap.me && snap.me.admin && !mobile) {
       ctx.textAlign = 'left'; ctx.fillStyle = '#ffd24f'; ctx.font = '700 13px "Microsoft YaHei", sans-serif';
-      ctx.fillText('Admin mode  [ / ] mass', 16, this.h - 60);
+      ctx.fillText('\u7ba1\u7406\u5458\u6a21\u5f0f  [ / ] \u8c03\u8d28\u91cf', 16, this.h - 60);
     }
     ctx.restore();
   };
-
-
   Render._feedPanel = function (dt) {
     if (!this._feed.length) return;
     const ctx = this.ctx, mobile = this.w < 760;

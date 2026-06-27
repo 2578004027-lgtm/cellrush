@@ -7,7 +7,7 @@
     _stickEl: null, _knobEl: null,
   };
 
-  const SKILL_KEYS = { q: 'dash', e: 'shield', r: 'magnet', f: 'merge' };
+  const SKILL_KEYS = { q: 'dash', e: 'shield', r: 'magnet', f: 'merge', '1': 'revenge', '2': 'grow', '3': 'thorn', '4': 'poison', '5': 'silence' };
   const STICK_RADIUS = 58;
   const AIM_RADIUS = 240;
 

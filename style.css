@@ -69,12 +69,14 @@ html, body {
 }
 .menu-button:hover { filter: brightness(1.1); }
 .menu-button:active { transform: translateY(1px); }
-.name-input { top: 276px; }
-.skin-input { top: 316px; font-size: 13px; }
-.play-button { position: absolute; left: 20px; right: 20px; top: 368px; background: var(--blue); border-color: #0b6db7; font-size: 17px; }
-.help { position: absolute; left: 18px; right: 18px; top: 424px; color: var(--muted); font-size: 12px; line-height: 1.7; text-align: center; }
+.name-input { top: 218px; }
+.skin-input { top: 256px; font-size: 13px; }
+.account-input { top: 294px; }
+.password-input { top: 332px; }
+.play-button { position: absolute; left: 20px; right: 20px; top: 376px; background: var(--blue); border-color: #0b6db7; font-size: 17px; }
+.help { position: absolute; left: 18px; right: 18px; top: 426px; color: var(--muted); font-size: 12px; line-height: 1.7; text-align: center; }
 .help b { color: rgba(255,255,255,0.9); font-weight: 600; }
-.neterr { position: absolute; left: 20px; right: 20px; top: 410px; color: #ff8aa0; font-size: 13px; line-height: 1.45; text-align: center; }
+.neterr { position: absolute; left: 20px; right: 20px; top: 418px; color: #ff8aa0; font-size: 13px; line-height: 1.45; text-align: center; }
 .neterr.hidden { display: none; }
 
 .server-options { position: absolute; top: 66px; left: 10px; right: 10px; display: flex; gap: 6px; height: 36px; }
@@ -85,6 +87,11 @@ html, body {
 .room-list li.active, .room-list li:hover { background: rgba(76,76,76,0.65); }
 .room-list span { font-size: 15px; }
 .room-list b { font-size: 13px; font-weight: 500; color: var(--muted); }
+.skill-intro { position: absolute; left: 10px; right: 10px; top: 366px; padding: 9px 10px; border-radius: 3px; background: #323232; color: rgba(255,255,255,0.72); font-size: 12px; line-height: 1.55; }
+.skill-intro b { display: block; color: var(--text); margin-bottom: 3px; font-size: 13px; }
+.skill-intro span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skill-intro em { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; margin-right: 5px; border-radius: 2px; background: rgba(22,141,232,0.75); color: #fff; font-style: normal; font-weight: 800; }
+.skill-intro small { display: block; margin-top: 4px; color: rgba(124,255,176,0.88); }
 
 #gear {
   position: fixed; left: 14px; top: 12px; z-index: 9; width: 42px; height: 42px; border-radius: 3px;
@@ -114,7 +121,26 @@ html, body {
 .row input[type=checkbox]::after { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #f4f4f4; top: 3px; left: 3px; transition: left .14s ease; }
 .row input[type=checkbox]:checked { background: #168de8; }
 .row input[type=checkbox]:checked::after { left: 23px; }
-.set-help { margin: 18px 0; color: var(--muted); font-size: 13px; text-align: center; }
+.admin-auth { display: flex; align-items: center; gap: 8px; width: min(360px, 58%); }
+.admin-auth input {
+  flex: 1; min-width: 0; height: 32px; border: 0; border-radius: 2px; outline: none; padding: 0 9px;
+  color: var(--text); background: #323232; font-size: 13px;
+}
+.admin-auth button, .skill-shop button {
+  height: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; padding: 0 12px;
+  color: #fff; background: var(--blue); cursor: pointer; font-weight: 700;
+}
+.account-status { margin: 12px 0 8px; color: rgba(255,255,255,0.78); font-size: 13px; }
+.skill-shop { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 8px 0 12px; }
+.skill-shop .skill-card {
+  min-height: 58px; border: 1px solid rgba(255,255,255,0.09); border-radius: 4px; background: rgba(30,30,30,0.75);
+  padding: 8px; display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center;
+}
+.skill-card b { display: block; font-size: 13px; }
+.skill-card small { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+.skill-card.unlocked button { background: #323232; color: rgba(255,255,255,0.5); cursor: default; }
+.skill-card.locked button:disabled { background: #464646; color: rgba(255,255,255,0.4); cursor: default; }
+.set-help { margin: 14px 0; color: var(--muted); font-size: 13px; text-align: center; }
 .set-help b { color: var(--text); }
 .settings-content .play-button, .settings-content .ghost { position: static; display: block; width: 100%; margin-top: 10px; }
 .ghost { background: transparent; border-color: rgba(255,255,255,0.16); color: rgba(255,255,255,0.76); }
@@ -158,13 +184,17 @@ html, body {
   .left-panel .panel-title, .right-panel { display: none; }
   .panel-title { height: 36px; font-size: 15px; }
   .brand-title { font-size: 22px; }
-  .avatar-preview { top: 66px; width: 140px; height: 140px; }
+  .avatar-preview { top: 54px; width: 116px; height: 116px; }
   .menu-input { left: 18px; right: 18px; width: calc(100% - 36px); height: 36px; font-size: 15px; }
-  .name-input { top: 232px; }
-  .skin-input { top: 276px; font-size: 12px; }
-  .play-button { left: 18px; right: 18px; top: 326px; height: 42px; }
-  .help { top: 386px; font-size: 11px; line-height: 1.55; }
-  .neterr { top: 374px; }
+  .name-input { top: 184px; }
+  .skin-input { top: 226px; font-size: 12px; }
+  .account-input { top: 268px; }
+  .password-input { top: 310px; }
+  .play-button { left: 18px; right: 18px; top: 356px; height: 42px; }
+  .help { top: 414px; font-size: 11px; line-height: 1.55; }
+  .neterr { top: 402px; }
+  .skill-shop { grid-template-columns: 1fr 1fr; }
+  .admin-auth { width: 62%; }
   .skins { height: 124px; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; padding: 18px 14px; gap: 12px; align-content: center; scroll-snap-type: x proximity; }
   .swatch { flex: 0 0 auto; width: 64px; height: 64px; scroll-snap-align: start; }
   .settings-panel { width: min(94vw, 430px); height: min(88svh, 520px); grid-template-columns: 1fr; }

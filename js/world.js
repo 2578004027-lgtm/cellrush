@@ -1,4 +1,4 @@
-// CellRush — authoritative world simulation. Pure logic, no DOM.
+// CellRush - authoritative world simulation. Pure logic, no DOM.
 // This is the module that could run unchanged on a Node server later.
 (function (G) {
   const CFG = G.CFG, U = G.util;
@@ -42,8 +42,9 @@
       isBot: !!opts.isBot,
       cells: [], input: { tx: 0, ty: 0, split: false, eject: false },
       alive: false, maxMass: 0, bornAt: this.time, ai: {},
-      cd: { dash: 0, shield: 0, magnet: 0, merge: 0 },   // time when each skill is ready again
-      fx: { dash: 0, shield: 0, magnet: 0, merge: 0 },   // time until each effect ends
+      account: '', diamonds: 99999, unlockedSkills: [], poisonUntil: 0, poisonRate: 0, silenceUntil: 0, _growth: null, _magnetUntil: 0, _poisonBomb: null,
+      cd: { dash: 0, shield: 0, magnet: 0, merge: 0, revenge: 0, grow: 0, thorn: 0, poison: 0, silence: 0 },   // time when each skill is ready again
+      fx: { dash: 0, shield: 0, magnet: 0, merge: 0, revenge: 0, grow: 0, thorn: 0, poison: 0, silence: 0 },   // time until each effect ends
       admin: false,
     };
     this.players.set(p.id, p);
@@ -57,6 +58,8 @@
     const x = U.rand(this.size * 0.1, this.size * 0.9), y = U.rand(this.size * 0.1, this.size * 0.9);
     p.cells = [this._newCell(p, x, y, CFG.startMass)];
     p.input.tx = x; p.input.ty = y;
+    p.poisonUntil = 0; p.poisonRate = 0; p.silenceUntil = 0; p._growth = null; p._magnetUntil = 0; p._poisonBomb = null;
+    for (const k in p.fx) p.fx[k] = 0;
   };
 
   World.prototype.removePlayer = function (id) { this.players.delete(id); };
@@ -65,7 +68,7 @@
     const p = this.players.get(playerId);
     if (!p || !p.alive) return;
     p.input.tx = input.tx; p.input.ty = input.ty;
-    if (input.split) this._split(p);
+    if (input.split && this.time >= (p.silenceUntil || 0)) this._split(p);
     if (input.eject) this._eject(p);
     if (input.skill) this._useSkill(p, input.skill);
     if (p.admin && input.adminGrow) for (const c of p.cells) c.mass += CFG.admin.growStep;
@@ -75,12 +78,72 @@
   World.prototype._useSkill = function (p, name) {
     const def = CFG.skills[name];
     if (!def) return;
-    if (this.time < (p.cd[name] || 0)) return;     // still on cooldown
-    p.cd[name] = p.admin ? 0 : this.time + def.cd;  // admin: no cooldown
+    if (this.time < (p.cd[name] || 0)) return;
+    const cdMult = (def.special && !p.admin && !p.account) ? 2.2 : 1;
+    p.cd[name] = p.admin ? 0 : this.time + def.cd * cdMult;
     p.fx[name] = this.time + (def.dur || 0);
-    if (name === 'merge') for (const c of p.cells) c.mergeAt = this.time;   // allow immediate recombine
+    if (name === 'merge') for (const c of p.cells) c.mergeAt = this.time;
+    else if (name === 'grow') this._startGrow(p, def);
+    else if (name === 'thorn' || name === 'poison' || name === 'silence') this._shootSkillProjectile(p, name, def);
+    else if (name === 'magnet') p._magnetUntil = p.fx.magnet;
   };
 
+  World.prototype._mainCell = function (p) {
+    let best = null;
+    for (const c of p.cells) if (!best || c.mass > best.mass) best = c;
+    return best;
+  };
+
+  World.prototype._startGrow = function (p, def) {
+    if (p._growth && this.time < p._growth.until) return;
+    const mult = def.massMult || 1.4;
+    p._growth = { until: this.time + (def.dur || 4), mult };
+    for (const c of p.cells) c.mass *= mult;
+    if (p.cells[0]) this.events.push({ type: 'grow', x: p.cells[0].x, y: p.cells[0].y, r: radius(p.cells[0].mass), color: def.color });
+  };
+
+  World.prototype._shootSkillProjectile = function (p, kind, def) {
+    const c = this._mainCell(p);
+    if (!c || c.mass < CFG.ejectMin) return;
+    const ang = Math.atan2(p.input.ty - c.y, p.input.tx - c.x);
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    const loss = Math.min(def.mass || CFG.ejectMass, Math.max(0, c.mass - CFG.startMass));
+    c.mass -= loss;
+    const r = radius(c.mass);
+    this.ejected.push({
+      id: U.uid(), x: c.x + ca * (r + 10), y: c.y + sa * (r + 10), mass: def.mass || CFG.ejectMass,
+      vx: ca * (def.speed || CFG.ejectSpeed), vy: sa * (def.speed || CFG.ejectSpeed), color: def.color || p.color.css,
+      ttl: Infinity, ownerId: p.id, kind, angle: ang, poisonDelay: def.poisonDelay || 3, poisonShrink: def.poisonShrink || 0.65, silenceDur: def.silenceDur || def.dur || 0,
+    });
+    this.events.push({ type: kind, x: c.x + ca * r, y: c.y + sa * r, r: radius(def.mass || CFG.ejectMass), color: def.color || p.color.css });
+  };
+
+  World.prototype._silenceArea = function (p, def) {
+    const range = def.range || 480;
+    for (const q of this.players.values()) {
+      if (!q.alive || q.id === p.id || q.admin) continue;
+      let hit = false;
+      for (const a of p.cells) for (const b of q.cells) if (U.dist(a.x, a.y, b.x, b.y) < range + radius(a.mass)) hit = true;
+      if (hit) {
+        q.silenceUntil = Math.max(q.silenceUntil || 0, this.time + (def.dur || 4));
+        if (q.cells[0]) this.events.push({ type: 'silence', x: q.cells[0].x, y: q.cells[0].y, r: radius(q.cells[0].mass), color: def.color });
+      }
+    }
+  };
+
+  World.prototype._convertCell = function (cell, fromP, toP, color) {
+    if (!cell || !fromP || !toP || fromP.id === toP.id) return;
+    fromP.cells = fromP.cells.filter((c) => c !== cell);
+    cell.ownerId = toP.id;
+    cell.mergeAt = this.time + 2;
+    toP.cells.push(cell);
+    this.events.push({ type: 'revenge', x: cell.x, y: cell.y, r: radius(cell.mass), color: color || toP.color.css });
+  };
+  World.prototype._mergeDelay = function (mass, cellCount) {
+    const byMass = Math.sqrt(Math.max(1, mass)) * (CFG.mergePerMass || 0);
+    const byCells = Math.max(0, cellCount - 1) * (CFG.mergePerCell || 0);
+    return U.clamp((CFG.mergeBase || 2) + byMass + byCells, CFG.mergeMin || 2, CFG.mergeMax || 8);
+  };
   World.prototype._split = function (p) {
     const snapshot = p.cells.slice();
     for (const c of snapshot) {
@@ -96,8 +159,8 @@
         CFG.splitImpulse,
         CFG.splitImpulseMax || 6500
       );
-      const sep = r * (CFG.splitStartSeparation || 1.55);
-      const back = sep * (CFG.splitBackPush || 0.25);
+      const sep = r * (CFG.splitStartSeparation || 2.03);
+      const back = sep * (CFG.splitBackPush || 0);
       c.x = U.clamp(c.x - ca * back, r, this.size - r);
       c.y = U.clamp(c.y - sa * back, r, this.size - r);
       const nc = this._newCell(p,
@@ -108,7 +171,7 @@
       nc.vx = ca * launch;
       nc.vy = sa * launch;
       p.cells.push(nc);
-      const mAt = this.time + CFG.mergeBase + p.cells.length * CFG.mergePerCell;  // more pieces -> longer
+      const mAt = this.time + this._mergeDelay(half, p.cells.length);
       nc.mergeAt = mAt; c.mergeAt = mAt;
       this.events.push({ type: 'split', x: nc.x, y: nc.y, r: radius(half), color: p.color.css });
     }
@@ -136,6 +199,7 @@
     // 1) move player cells
     for (const p of this.players.values()) {
       if (!p.alive) continue;
+      if (p._growth && this.time >= p._growth.until) { for (const c of p.cells) c.mass = Math.max(CFG.startMass, c.mass / p._growth.mult); p._growth = null; }
       const dashing = this.time < p.fx.dash;
       for (const c of p.cells) {
         const dx = p.input.tx - c.x, dy = p.input.ty - c.y;
@@ -159,7 +223,7 @@
 
     // 2) ejected mass & shot viruses move
     for (const e of this.ejected) {
-      e.x += e.vx * dt; e.y += e.vy * dt; e.vx *= fr; e.vy *= fr; e.ttl -= dt;
+      e.x += e.vx * dt; e.y += e.vy * dt; e.vx *= fr; e.vy *= fr; if (e.ttl !== Infinity) e.ttl -= dt;
       const r = radius(e.mass);
       e.x = U.clamp(e.x, r, this.size - r); e.y = U.clamp(e.y, r, this.size - r);
     }
@@ -180,6 +244,14 @@
     for (const p of this.players.values()) {
       if (!p.alive) continue;
       let tot = 0;
+      if (!p.admin && p._poisonBomb && this.time >= p._poisonBomb.at) {
+        const ids = new Set(p._poisonBomb.cellIds || []);
+        const unchanged = p.cells.length === ids.size && p.cells.every((c) => ids.has(c.id));
+        if (unchanged) {
+          for (const c of p.cells) this._poisonBurstCell(p, c, p._poisonBomb);
+        }
+        p._poisonBomb = null;
+      }
       for (const c of p.cells) {
         if (!p.admin && c.mass > CFG.decayMin) c.mass -= c.mass * CFG.decayRate * dt;
         tot += c.mass;
@@ -192,6 +264,27 @@
     while (this.food.length < CFG.foodCount) this.food.push(this._spawnFood());
   };
 
+
+  World.prototype._poisonBurstCell = function (p, c, bomb) {
+    const oldMass = c.mass;
+    const targetMass = Math.max(CFG.splitMin, oldMass * (bomb.shrink || 0.18));
+    const lost = Math.max(0, oldMass - targetMass);
+    c.mass = targetMass;
+    const color = bomb.color || CFG.skills.poison.color;
+    if (lost <= 0) { this.events.push({ type: 'poison', x: c.x, y: c.y, r: radius(c.mass), color }); return; }
+    const count = Math.min(70, Math.max(8, Math.floor(lost / Math.max(6, CFG.ejectMass * 0.75))));
+    const baseR = radius(c.mass);
+    for (let i = 0; i < count; i++) {
+      const a = U.TAU * (i / count) + U.rand(-0.18, 0.18);
+      const sp = U.rand(260, 720);
+      const m = Math.max(4, Math.min(CFG.ejectMass, lost / count));
+      this.ejected.push({
+        id: U.uid(), x: c.x + Math.cos(a) * (baseR + U.rand(4, 18)), y: c.y + Math.sin(a) * (baseR + U.rand(4, 18)),
+        mass: m, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, color, ttl: CFG.ejectTTL, ownerId: p.id,
+      });
+    }
+    this.events.push({ type: 'poison', x: c.x, y: c.y, r: radius(c.mass), color });
+  };
   // same-owner cells: merge when ready, otherwise don't overlap; gentle cohesion
   World.prototype._resolveOwnCells = function (p, dt) {
     const cs = p.cells;
@@ -245,7 +338,7 @@
     // magnet skill: active players drag nearby food toward their cells
     const mdt = this._dt || 1 / 30;
     for (const p of this.players.values()) {
-      if (!p.alive || this.time >= p.fx.magnet) continue;
+      if (!p.alive || !p._magnetUntil || this.time >= p._magnetUntil) continue;
       const def = CFG.skills.magnet;
       for (const c of p.cells) {
         H.query(c.x, c.y, def.range, (f) => {
@@ -282,7 +375,30 @@
       const r = radius(c.mass);
       H.query(c.x, c.y, r, (e) => {
         if (remEject.has(e.id)) return;
-        if (U.dist(c.x, c.y, e.x, e.y) < r) { remEject.add(e.id); c.mass += e.mass; }
+        if (e.ownerId && e.ownerId === c.ownerId) return;
+        if (U.dist(c.x, c.y, e.x, e.y) >= r) return;
+        if (e.kind === 'thorn') {
+          remEject.add(e.id);
+          if (c.mass > CFG.splitMin * 2.2) this._popCell(c);
+          else c.mass = Math.max(CFG.startMass, c.mass - e.mass);
+          this.events.push({ type: 'thorn', x: c.x, y: c.y, r: radius(c.mass), color: e.color });
+          return;
+        }
+        if (e.kind === 'poison') {
+          const tp = this.players.get(c.ownerId);
+          remEject.add(e.id);
+          if (tp && !tp.admin) tp._poisonBomb = { at: this.time + (e.poisonDelay || 3), cellIds: tp.cells.map((pc) => pc.id), shrink: e.poisonShrink || 0.18, color: e.color };
+          this.events.push({ type: 'poison', x: c.x, y: c.y, r: radius(c.mass), color: e.color });
+          return;
+        }
+        if (e.kind === 'silence') {
+          const tp = this.players.get(c.ownerId);
+          remEject.add(e.id);
+          if (tp && !tp.admin) tp.silenceUntil = Math.max(tp.silenceUntil || 0, this.time + (e.silenceDur || 4.5));
+          this.events.push({ type: 'silence', x: c.x, y: c.y, r: radius(c.mass), color: e.color });
+          return;
+        }
+        remEject.add(e.id); c.mass += e.mass;
       });
     }
     if (remEject.size) this.ejected = this.ejected.filter((e) => !remEject.has(e.id));
@@ -291,9 +407,10 @@
     H.clear();
     for (const c of cells) H.insert(c);
     const dead = new Set();
+    const converted = new Set();
     let virusPopped = false;
     for (const c of cells) {
-      if (dead.has(c.id)) continue;
+      if (dead.has(c.id) || converted.has(c.id)) continue;
       const cp = this.players.get(c.ownerId);
       const r = radius(c.mass);
       const ratio = (cp && cp.admin) ? 1.0 : CFG.eatRatio;
@@ -308,10 +425,11 @@
       }
       // other cells
       H.query(c.x, c.y, r, (t) => {
-        if (t === c || dead.has(t.id) || dead.has(c.id) || t.ownerId === c.ownerId) return;
+        if (t === c || dead.has(t.id) || dead.has(c.id) || converted.has(c.id) || t.ownerId === c.ownerId) return;
         const tp = this.players.get(t.ownerId);
-        if (tp && (this.time < tp.fx.shield || tp.admin)) return;   // shielded / admin cannot be eaten
+        if (tp && (this.time < tp.fx.shield || tp.admin)) return;
         if (c.mass >= t.mass * ratio && U.dist(c.x, c.y, t.x, t.y) < r - radius(t.mass) * CFG.eatOverlap) {
+          if (tp && this.time < (tp.fx.revenge || 0) && !(cp && cp.admin)) { converted.add(c.id); this._convertCell(c, cp, tp, CFG.skills.revenge.color); return; }
           dead.add(t.id); c.mass += t.mass;
         }
       });
@@ -334,7 +452,7 @@
     if (pieces <= 0) return;
     const each = c.mass / (pieces + 1);
     c.mass = each;
-    const merge = this.time + CFG.mergeBase + (p.cells.length + pieces) * CFG.mergePerCell;
+    const merge = this.time + this._mergeDelay(each, p.cells.length + pieces);
     c.mergeAt = merge;
     for (let i = 0; i < pieces; i++) {
       const ang = U.rand(U.TAU);
@@ -360,14 +478,14 @@
 
   // Build a render-ready, viewport-culled snapshot for one player. Used by the
   // server (authoritative) to broadcast; the client just renders what it gets.
-  // Does NOT clear events — the server clears world.events once after broadcasting to all.
+  // Does NOT clear events; the server clears world.events once after broadcasting to all.
   World.prototype.buildSnapshot = function (playerId, view) {
     const w = this, radius = G.radius;
     const out = { cells: [], food: [], viruses: [], ejected: [], leaderboard: [], players: [], events: [], me: null, world: w.size };
     const inView = (x, y, r) => x + r > view.x0 && x - r < view.x1 && y + r > view.y0 && y - r < view.y1;
 
     for (const f of w.food) if (inView(f.x, f.y, 8)) out.food.push({ id: f.id, x: f.x, y: f.y, r: radius(f.mass), color: f.color });
-    for (const e of w.ejected) { const r = radius(e.mass); if (inView(e.x, e.y, r)) out.ejected.push({ id: e.id, x: e.x, y: e.y, r, color: e.color }); }
+    for (const e of w.ejected) { const r = radius(e.mass); if (inView(e.x, e.y, r)) out.ejected.push({ id: e.id, x: e.x, y: e.y, r, color: e.color, kind: e.kind || '', angle: e.angle || 0 }); }
     for (const v of w.viruses) { const r = radius(v.mass); if (inView(v.x, v.y, r)) out.viruses.push({ id: v.id, x: v.x, y: v.y, r, mass: v.mass }); }
 
     for (const p of w.players.values()) {
@@ -380,7 +498,8 @@
           out.cells.push({ id: c.id, x: c.x, y: c.y, r, mass: c.mass, color: p.color.css, dark: p.color.dark, skin: p.skin || '',
             name: p.name, isMe: p.id === playerId,
             shield: w.time < (p.fx.shield || 0), admin: p.admin, dashing: w.time < (p.fx.dash || 0),
-            mergeIn: (p.id === playerId && p.cells.length > 1) ? Math.max(0, c.mergeAt - w.time) : 0 });
+            mergeIn: (p.id === playerId && p.cells.length > 1) ? Math.max(0, c.mergeAt - w.time) : 0,
+            revenge: w.time < (p.fx.revenge || 0), growth: !!p._growth, poisoned: w.time < (p.poisonUntil || 0) || !!(p._poisonBomb && w.time < p._poisonBomb.at), silenced: w.time < (p.silenceUntil || 0) });
       }
       if (tm > 0) { cx /= tm; cy /= tm; out.players.push({ x: cx, y: cy, mass: tm, isMe: p.id === playerId }); }
     }
@@ -394,13 +513,21 @@
     if (me && me.alive && me.cells.length) {
       let cx = 0, cy = 0, tm = 0;
       for (const c of me.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
-      out.me = { x: cx / tm, y: cy / tm, mass: tm, maxMass: me.maxMass, cells: me.cells.length, admin: me.admin };
+      out.me = { x: cx / tm, y: cy / tm, mass: tm, maxMass: me.maxMass, cells: me.cells.length, admin: me.admin,
+        account: me.account || '', diamonds: me.diamonds || 99999 };
       out.me.skills = CFG.skillOrder.map((k) => {
         const def = CFG.skills[k];
-        return { key: def.key, name: def.name, color: def.color, remain: Math.max(0, (me.cd[k] || 0) - w.time), cd: def.cd, active: w.time < (me.fx[k] || 0) };
+        const unlocked = !def.special || me.admin || (me.unlockedSkills || []).includes(k);
+        return { id: k, key: def.key, name: def.name, color: def.color, cost: def.cost || 0, locked: !unlocked,
+          remain: unlocked ? Math.max(0, (me.cd[k] || 0) - w.time) : 0, cd: def.cd, active: unlocked && w.time < (me.fx[k] || 0) };
+      });
+      out.me.specials = (CFG.specialSkillOrder || []).map((k) => {
+        const def = CFG.skills[k];
+        const unlocked = true;
+        return { id: k, key: def.key, name: def.name, color: def.color, cost: def.cost || 0, locked: !unlocked,
+          remain: unlocked ? Math.max(0, (me.cd[k] || 0) - w.time) : 0, cd: def.cd, active: unlocked && w.time < (me.fx[k] || 0) };
       });
     }
-
     for (const ev of w.events) if (inView(ev.x, ev.y, (ev.r || 30) * 3)) out.events.push(ev);
     return out;
   };

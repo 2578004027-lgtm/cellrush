@@ -85,12 +85,13 @@
     this._aim = { tx: 0, ty: 0 };
     this._lastSend = 0;
     this._adminWant = false;
+    this.account = null;
     try {
       this.ws = new WebSocket(serverUrl());
     } catch (e) { if (opts.onError) opts.onError(); return; }
     this.ws.onopen = () => {
-      this.ws.send(JSON.stringify({ t: 'join', name: opts.name, color: { h: opts.color.h }, skin: opts.skin || '' }));
-      if (this._adminWant) this.setAdmin(true);
+      this.ws.send(JSON.stringify({ t: 'join', name: opts.name, color: { h: opts.color.h }, skin: opts.skin || '', account: opts.account || '', password: opts.password || '' }));
+
     };
     this.ws.onmessage = (e) => { try { this._recv(JSON.parse(e.data)); } catch (err) { /* ignore malformed packets */ } };
     this.ws.onclose = () => { if (opts.onClose) opts.onClose(); };
@@ -153,6 +154,11 @@
       if (this.history.length > MAX_HISTORY) this.history.splice(0, this.history.length - MAX_HISTORY);
       const minTime = snap._time - 2;
       while (this.history.length > 2 && this.history[1]._time < minTime) this.history.shift();
+    } else if (m.t === 'adminAuth') {
+      this._adminWant = !!m.ok;
+    } else if (m.t === 'account') {
+      if (m.ok && m.account) this.account = m.account;
+      if (this.opts.onAccount) this.opts.onAccount(m);
     } else if (m.t === 'dead') {
       this.alive = false;
       if (this.opts.onDead) this.opts.onDead(m);
@@ -195,9 +201,11 @@
     this.alive = true;
     if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ t: 'respawn', name, color: { h: color.h }, skin: skin || '' }));
   };
-  NetTransport.prototype.setAdmin = function (on) {
-    this._adminWant = on;
-    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ t: 'admin', on }));
+  NetTransport.prototype.buySkill = function (skill) {
+    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ t: 'buySkill', skill }));
+  };
+  NetTransport.prototype.adminLogin = function (key) {
+    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ t: 'adminAuth', key: key || '' }));
   };
   NetTransport.prototype.close = function () { try { this.ws.close(); } catch (e) { /* */ } };
 
