@@ -1,6 +1,6 @@
 // Headless online smoke test: connect, join, send input, verify nearby delta snapshots.
 const WebSocket = require('ws');
-const skinUrl = 'https://cwal.io/skins/ring.png';
+const skinUrl = '/assets/skins/ring.svg';
 const ws = new WebSocket('ws://127.0.0.1:8137');
 let gotWelcome = false, myId = null, snaps = 0, snapInfo = null, sawSplitGrowth = false;
 let sawMe = false, sawSkills = false, sawSkin = false;

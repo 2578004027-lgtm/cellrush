@@ -18,7 +18,7 @@ const CFG = api.CFG;
 process.on('uncaughtException', (e) => console.error('[server] uncaught:', (e && e.stack) || e));
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
-  '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.task': 'application/octet-stream' };
+  '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.task': 'application/octet-stream' };
 const httpServer = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]);
   if (p === '/') p = '/index.html';

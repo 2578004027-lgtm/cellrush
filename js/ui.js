@@ -4,16 +4,16 @@
   const UI = {};
   const PRESET_SKINS = [
     '',
-    'https://cwal.io/skins/ring.png',
-    'https://cwal.io/skins/h.png',
-    'https://cwal.io/skins/circles.png',
-    'https://cwal.io/skins/w.png',
-    'https://cwal.io/skins/wolf.png',
-    'https://cwal.io/skins/dragon.png',
-    'https://cwal.io/skins/magatama.png',
-    'https://cwal.io/skins/ghost.png',
-    'https://cwal.io/skins/bat.png',
-    'https://cwal.io/skins/daemon.png',
+    '/assets/skins/ring.svg',
+    '/assets/skins/halo.svg',
+    '/assets/skins/circles.svg',
+    '/assets/skins/wolf.svg',
+    '/assets/skins/dragon.svg',
+    '/assets/skins/magatama.svg',
+    '/assets/skins/ghost.svg',
+    '/assets/skins/bat.svg',
+    '/assets/skins/daemon.svg',
+    '/assets/skins/star.svg',
   ];
 
   UI.init = function (cbs) {
@@ -70,7 +70,7 @@
     if (!this.skinsEl.children.length) {
       PRESET_SKINS.forEach((skin, i) => {
         const d = document.createElement('button');
-        d.textContent = skin ? (skin.split('/').pop() || 'skin').replace('.png', '') : 'Pure';
+        d.textContent = skin ? (skin.split('/').pop() || 'skin').replace('.png', '').replace('.svg', '') : 'Pure';
         d.title = skin || 'Pure color';
         if (i === 0) d.classList.add('sel');
         wireSwatch(d, skin, null);
@@ -89,7 +89,7 @@
 
     try {
       const ln = localStorage.getItem('cr_name'); if (ln) this.nameInput.value = ln;
-      const skin = localStorage.getItem('cr_skin'); if (skin) { this.selectedSkin = skin; this.skinInput.value = skin; }
+      let skin = localStorage.getItem('cr_skin'); if (skin && skin.indexOf('cwal.io/skins/') >= 0) skin = '/assets/skins/' + skin.split('/').pop().replace('.png', '.svg').replace('h.svg', 'halo.svg').replace('w.svg', 'star.svg'); if (skin) { this.selectedSkin = skin; this.skinInput.value = skin; }
     } catch (e) { /* localStorage may be blocked */ }
     if (this.selectedSkin) {
       const saved = this.skinsEl.querySelector('[data-skin="' + this.selectedSkin.replace(/"/g, '\\"') + '"]');

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>CellRush - 细胞乱斗</title>
+<title>CellRush</title>
 <link rel="icon" href="data:," />
 <link rel="stylesheet" href="style.css" />
 </head>
@@ -13,41 +13,41 @@
 <div id="menu" class="overlay menu-overlay">
   <div class="shell-panel">
     <section class="left-panel">
-      <div class="panel-title">皮肤</div>
-            <div id="skins" class="skins">
+      <div class="panel-title">Skins</div>
+      <div id="skins" class="skins">
         <button type="button" class="swatch sel" data-skin="" title="Pure">Pure</button>
-        <button type="button" class="swatch" data-skin="https://cwal.io/skins/ring.png" style="background-image:url('https://cwal.io/skins/ring.png')" title="Ring">Ring</button>
-        <button type="button" class="swatch" data-skin="https://cwal.io/skins/h.png" style="background-image:url('https://cwal.io/skins/h.png')" title="H">H</button>
-        <button type="button" class="swatch" data-skin="https://cwal.io/skins/circles.png" style="background-image:url('https://cwal.io/skins/circles.png')" title="Circles">Cir</button>
-        <button type="button" class="swatch" data-skin="https://cwal.io/skins/w.png" style="background-image:url('https://cwal.io/skins/w.png')" title="W">W</button>
-        <button type="button" class="swatch" data-skin="https://cwal.io/skins/wolf.png" style="background-image:url('https://cwal.io/skins/wolf.png')" title="Wolf">Wolf</button>
-        <button type="button" class="swatch" data-skin="https://cwal.io/skins/dragon.png" style="background-image:url('https://cwal.io/skins/dragon.png')" title="Dragon">Drag</button>
-        <button type="button" class="swatch" data-skin="https://cwal.io/skins/magatama.png" style="background-image:url('https://cwal.io/skins/magatama.png')" title="Magatama">Mag</button>
-        <button type="button" class="swatch" data-skin="https://cwal.io/skins/ghost.png" style="background-image:url('https://cwal.io/skins/ghost.png')" title="Ghost">Ghost</button>
-        <button type="button" class="swatch" data-skin="https://cwal.io/skins/bat.png" style="background-image:url('https://cwal.io/skins/bat.png')" title="Bat">Bat</button>
-        <button type="button" class="swatch" data-skin="https://cwal.io/skins/daemon.png" style="background-image:url('https://cwal.io/skins/daemon.png')" title="Daemon">Dae</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/ring.svg" style="background-image:url('/assets/skins/ring.svg')" title="Ring">Ring</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/halo.svg" style="background-image:url('/assets/skins/halo.svg')" title="Halo">Halo</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/circles.svg" style="background-image:url('/assets/skins/circles.svg')" title="Circles">Cir</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/wolf.svg" style="background-image:url('/assets/skins/wolf.svg')" title="Wolf">Wolf</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/dragon.svg" style="background-image:url('/assets/skins/dragon.svg')" title="Dragon">Drag</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/magatama.svg" style="background-image:url('/assets/skins/magatama.svg')" title="Magatama">Mag</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/ghost.svg" style="background-image:url('/assets/skins/ghost.svg')" title="Ghost">Ghost</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/bat.svg" style="background-image:url('/assets/skins/bat.svg')" title="Bat">Bat</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/daemon.svg" style="background-image:url('/assets/skins/daemon.svg')" title="Daemon">Dae</button>
+        <button type="button" class="swatch" data-skin="/assets/skins/star.svg" style="background-image:url('/assets/skins/star.svg')" title="Star">Star</button>
       </div>
     </section>
 
     <section class="middle-panel">
       <div class="panel-title brand-title">CellRush</div>
       <div class="avatar-preview" id="avatar-preview"></div>
-      <input id="name" class="menu-input name-input" maxlength="14" placeholder="输入昵称" autocomplete="off" spellcheck="false" />
-      <input id="skin-url" class="menu-input skin-input" maxlength="256" placeholder="皮肤图片 URL（可选）" autocomplete="off" spellcheck="false" />
-      <button id="play" class="menu-button play-button">开始游戏</button>
+      <input id="name" class="menu-input name-input" maxlength="14" placeholder="Nickname" autocomplete="off" spellcheck="false" />
+      <input id="skin-url" class="menu-input skin-input" maxlength="256" placeholder="Skin image URL or local path" autocomplete="off" spellcheck="false" />
+      <button id="play" class="menu-button play-button">Play</button>
       <div id="neterr" class="neterr hidden"></div>
-      <div class="help"><b>鼠标</b>移动 · <b>空格</b>分裂 · <b>W</b>吐球 · <b>Q/E/R/F</b>技能</div>
+      <div class="help"><b>Mouse</b> move · <b>Space</b> split · <b>W</b> eject · <b>Q/E/R/F</b> skills</div>
     </section>
 
     <section class="right-panel">
-      <div class="panel-title">房间</div>
+      <div class="panel-title">Rooms</div>
       <div class="server-options">
-        <button class="server-pill active">上海</button>
-        <button class="server-pill">本地</button>
+        <button class="server-pill active">Shanghai</button>
+        <button class="server-pill">Local</button>
       </div>
       <ul class="room-list">
-        <li class="active"><span>默认房间</span><b>在线</b></li>
-        <li><span>训练房间</span><b>机器人</b></li>
+        <li class="active"><span>Default Room</span><b>Online</b></li>
+        <li><span>Practice Room</span><b>Bots</b></li>
       </ul>
     </section>
   </div>
@@ -55,29 +55,29 @@
 
 <div id="death" class="overlay hidden">
   <div class="dialog-panel">
-    <h2>你被吞噬了</h2>
+    <h2>You were eaten</h2>
     <div id="death-stats" class="stats"></div>
-    <button id="respawn" class="menu-button play-button">再来一局</button>
+    <button id="respawn" class="menu-button play-button">Respawn</button>
   </div>
 </div>
 
-<button id="gear" title="设置 (Esc)">⚙</button>
+<button id="gear" title="Settings (Esc)">⚙</button>
 <div id="settings" class="overlay hidden">
   <div class="settings-panel">
     <nav class="settings-nav">
-      <button class="active">显示</button>
-      <button>控制</button>
-      <button>声音</button>
+      <button class="active">View</button>
+      <button>Control</button>
+      <button>Audio</button>
     </nav>
     <div class="settings-content">
-      <h2>设置</h2>
-      <label class="row"><span>音效</span><input type="checkbox" id="set-sound" /></label>
-      <label class="row"><span>显示名字</span><input type="checkbox" id="set-names" /></label>
-      <label class="row"><span>显示小地图</span><input type="checkbox" id="set-minimap" /></label>
-      <label class="row"><span>管理员模式<small>无敌 · 无冷却 · [ ] 增减质量</small></span><input type="checkbox" id="set-admin" /></label>
-      <div class="set-help">技能键：<b>Q</b> 冲刺 &nbsp; <b>E</b> 护盾 &nbsp; <b>R</b> 磁吸 &nbsp; <b>F</b> 合体</div>
-      <button id="resume" class="menu-button play-button">继续游戏</button>
-      <button id="tomenu" class="menu-button ghost">返回主菜单</button>
+      <h2>Settings</h2>
+      <label class="row"><span>Sound</span><input type="checkbox" id="set-sound" /></label>
+      <label class="row"><span>Names</span><input type="checkbox" id="set-names" /></label>
+      <label class="row"><span>Minimap</span><input type="checkbox" id="set-minimap" /></label>
+      <label class="row"><span>Admin mode<small>Invincible · no cooldown · [ ] mass</small></span><input type="checkbox" id="set-admin" /></label>
+      <div class="set-help">Skills: <b>Q</b> Dash &nbsp; <b>E</b> Shield &nbsp; <b>R</b> Magnet &nbsp; <b>F</b> Merge</div>
+      <button id="resume" class="menu-button play-button">Resume</button>
+      <button id="tomenu" class="menu-button ghost">Main menu</button>
     </div>
   </div>
 </div>
