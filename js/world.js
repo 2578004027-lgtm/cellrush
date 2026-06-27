@@ -138,6 +138,7 @@
     if (!cell || !fromP || !toP || fromP.id === toP.id) return;
     fromP.cells = fromP.cells.filter((c) => c !== cell);
     cell.ownerId = toP.id;
+    cell.splitAttackUntil = 0;
     cell.mergeAt = this.time + 2;
     toP.cells.push(cell);
     this.events.push({ type: 'revenge', x: cell.x, y: cell.y, r: radius(cell.mass), color: color || toP.color.css });
@@ -173,6 +174,7 @@
       );
       nc.vx = ca * launch;
       nc.vy = sa * launch;
+      nc.splitAttackUntil = this.time + 1.4;
       p.cells.push(nc);
       const mAt = this.time + this._mergeDelay(half, p.cells.length);
       nc.mergeAt = mAt; c.mergeAt = mAt;
@@ -438,7 +440,8 @@
         const tp = this.players.get(t.ownerId);
         if (tp && (this.time < tp.fx.shield || tp.admin)) return;
         if (c.mass >= t.mass * ratio && U.dist(c.x, c.y, t.x, t.y) < r - radius(t.mass) * CFG.eatOverlap) {
-          if (tp && this.time < (tp.fx.revenge || 0) && !(cp && cp.admin)) { converted.add(c.id); this._convertCell(c, cp, tp, CFG.skills.revenge.color); return; }
+          const splitAttack = c.splitAttackUntil && this.time < c.splitAttackUntil;
+          if (splitAttack && tp && this.time < (tp.fx.revenge || 0) && !(cp && cp.admin)) { converted.add(c.id); this._convertCell(c, cp, tp, CFG.skills.revenge.color); return; }
           dead.add(t.id); c.mass += t.mass;
         }
       });
