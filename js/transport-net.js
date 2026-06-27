@@ -1,7 +1,7 @@
 // CellRush - NetTransport: online WebSocket client with buffered snapshot interpolation.
 (function (G) {
   const EMPTY = { cells: [], food: [], viruses: [], ejected: [], leaderboard: [], players: [], events: [], me: null, world: G.CFG.worldSize };
-  const INTERP_DELAY = 0.075;
+  const INTERP_DELAY = 0.16;
   const MAX_HISTORY = 30;
 
   function nowSec() { return ((performance && performance.now) ? performance.now() : Date.now()) / 1000; }
