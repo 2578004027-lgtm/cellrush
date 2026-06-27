@@ -3,6 +3,7 @@
 // the snapshots it receives. Swap NetTransport here if you ever change backends.
 (function (G) {
   let transport = null, last = 0, playing = false, paused = false, camInit = false;
+  let fpsEl = null, frames = 0, fpsAcc = 0;
 
   function startGame(name, color) {
     if (transport) transport.close();
@@ -36,7 +37,9 @@
       transport.update(dt, input);
       const snap = transport.getSnapshot();
       if (playing && snap.me && !camInit) { G.Render.centerOn(snap.me.x, snap.me.y); G.Render.camera.scale = 1; camInit = true; }
-      G.Render.frame(snap, dt);
+      G.Render.frame(snap, dt, input);
+      frames++; fpsAcc += dt;
+      if (fpsAcc > 0.5) { if (fpsEl) fpsEl.textContent = Math.round(frames / fpsAcc) + ' fps'; frames = 0; fpsAcc = 0; }
     } else {
       G.Render.clear();
     }
@@ -45,6 +48,7 @@
   window.addEventListener('load', () => {
     G.Render.init(document.getElementById('game'));
     G.Input.init();
+    fpsEl = document.getElementById('fps');
     G.UI.init({
       onPlay: startGame,
       onRespawn: respawn,

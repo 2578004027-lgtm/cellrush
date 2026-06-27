@@ -91,9 +91,9 @@
       const nc = this._newCell(p, c.x, c.y, half);
       nc.vx = Math.cos(ang) * CFG.splitImpulse;
       nc.vy = Math.sin(ang) * CFG.splitImpulse;
-      nc.mergeAt = this.time + CFG.mergeBase + half * CFG.mergePerMass;
-      c.mergeAt = nc.mergeAt;
       p.cells.push(nc);
+      const mAt = this.time + CFG.mergeBase + p.cells.length * CFG.mergePerCell;  // more pieces -> longer
+      nc.mergeAt = mAt; c.mergeAt = mAt;
       this.events.push({ type: 'split', x: nc.x, y: nc.y, r: radius(half), color: p.color.css });
     }
   };
@@ -317,7 +317,7 @@
     if (pieces <= 0) return;
     const each = c.mass / (pieces + 1);
     c.mass = each;
-    const merge = this.time + CFG.mergeBase + each * CFG.mergePerMass;
+    const merge = this.time + CFG.mergeBase + (p.cells.length + pieces) * CFG.mergePerCell;
     c.mergeAt = merge;
     for (let i = 0; i < pieces; i++) {
       const ang = U.rand(U.TAU);
@@ -351,7 +351,7 @@
 
     for (const f of w.food) if (inView(f.x, f.y, 8)) out.food.push({ x: f.x, y: f.y, r: radius(f.mass), color: f.color });
     for (const e of w.ejected) { const r = radius(e.mass); if (inView(e.x, e.y, r)) out.ejected.push({ id: e.id, x: e.x, y: e.y, r, color: e.color }); }
-    for (const v of w.viruses) { const r = radius(v.mass); if (inView(v.x, v.y, r)) out.viruses.push({ id: v.id, x: v.x, y: v.y, r }); }
+    for (const v of w.viruses) { const r = radius(v.mass); if (inView(v.x, v.y, r)) out.viruses.push({ id: v.id, x: v.x, y: v.y, r, mass: v.mass }); }
 
     for (const p of w.players.values()) {
       if (!p.alive) continue;

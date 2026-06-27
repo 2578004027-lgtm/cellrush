@@ -26,8 +26,9 @@ G.CFG = {
   // split (Space)
   splitMin: 35,
   splitImpulse: 820,         // launch speed of the new piece (world u/s)
-  mergeBase: 12,             // seconds before split pieces may re-merge
-  mergePerMass: 0.025,       // + mass * this seconds
+  mergeBase: 6,              // base seconds before split pieces may re-merge
+  mergePerCell: 2.0,         // + (cell count) * this  -> more splits = longer to recombine
+  mergePerMass: 0.0,         // (kept for reference; merge time is now driven by split count)
 
   // eject (W)
   ejectMin: 35,
