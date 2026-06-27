@@ -209,51 +209,13 @@
   Render._cell = function (ctx, c) {
     ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, U.TAU);
     ctx.fillStyle = c.color; ctx.fill();
-        const skin = this._skinImage(c.skin);
-    if (skin) {
-      ctx.save();
-      ctx.clip();
-      ctx.drawImage(skin, c.x - c.r, c.y - c.r, c.r * 2, c.r * 2);
-      ctx.restore();
-    }
+        const skin = null;
     ctx.lineWidth = Math.max(2, c.r * 0.05);
     ctx.strokeStyle = c.dark || 'rgba(0,0,0,0.25)'; ctx.stroke();
 
-    if (c.revenge) {
-      ctx.beginPath(); ctx.arc(c.x, c.y, c.r + 7 / this.camera.scale + c.r * 0.06, 0, U.TAU);
-      ctx.lineWidth = Math.max(2, c.r * 0.09); ctx.strokeStyle = 'rgba(255,107,138,0.9)'; ctx.stroke();
-    }
-    if (c.poisoned) {
-      ctx.beginPath(); ctx.arc(c.x, c.y, c.r + 4 / this.camera.scale, 0, U.TAU);
-      ctx.lineWidth = Math.max(2, c.r * 0.06); ctx.strokeStyle = 'rgba(49,212,106,0.85)'; ctx.stroke();
-    }
-    if (c.silenced) {
-      ctx.beginPath(); ctx.arc(c.x, c.y, c.r + 11 / this.camera.scale, 0, U.TAU);
-      ctx.lineWidth = Math.max(2, c.r * 0.055); ctx.strokeStyle = 'rgba(138,160,255,0.9)'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
-    }
-    if (c.shield) {
-      ctx.beginPath(); ctx.arc(c.x, c.y, c.r + 6 / this.camera.scale + c.r * 0.06, 0, U.TAU);
-      ctx.lineWidth = Math.max(2, c.r * 0.09); ctx.strokeStyle = 'rgba(108,240,255,0.9)'; ctx.stroke();
-    }
-    if (c.admin) {
-      ctx.beginPath(); ctx.arc(c.x, c.y, c.r + 10 / this.camera.scale + c.r * 0.08, 0, U.TAU);
-      ctx.lineWidth = Math.max(2, c.r * 0.07); ctx.strokeStyle = 'rgba(255,210,80,0.95)'; ctx.setLineDash([8, 6]); ctx.stroke(); ctx.setLineDash([]);
-    }
-    if (c.mergeIn && c.mergeIn > 0.05) {            // can't re-merge yet -> countdown arc + seconds
-      const frac = U.clamp(c.mergeIn / (CFG.mergeMax || 3), 0, 1);
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, c.r + 5 / this.camera.scale, -Math.PI / 2, -Math.PI / 2 + U.TAU * frac);
-      ctx.lineWidth = Math.max(2, c.r * 0.07); ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.stroke();
-      if (c.r * this.camera.scale > 24) {
-        ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const fs = Math.max(10, c.r * 0.32); ctx.font = '700 ' + fs + 'px sans-serif';
-        ctx.fillText(Math.ceil(c.mergeIn) + 's', c.x, c.y - c.r * 0.5);
-        ctx.restore();
-      }
-    }
 
     const px = c.r * this.camera.scale;
-    if (px > 20) {
+    if ((c.isMe || px > 90) && px > 20) {
       ctx.save();
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineJoin = 'round';
@@ -286,7 +248,7 @@
 
   // turn sim events into transient ring effects
   Render._spawnFx = function (events) {
-    if (!events) return;
+    return;
     for (const ev of events) {
       let msg = null;
       if (ev.type === 'split') continue;
