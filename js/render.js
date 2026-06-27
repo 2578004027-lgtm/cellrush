@@ -42,6 +42,12 @@
     return { x0: v.x0 - m, x1: v.x1 + m, y0: v.y0 - m, y1: v.y1 + m };
   };
   Render.centerOn = function (x, y) { this.camera.x = x; this.camera.y = y; };
+  Render._sectorInfo = function (x, y, world) {
+    const s = world || CFG.worldSize;
+    const col = U.clamp(Math.floor(x / (s / 3)), 0, 2);
+    const row = U.clamp(Math.floor(y / (s / 3)), 0, 2);
+    return { row, col, id: row * 3 + col + 1 };
+  };
   Render._skinImage = function (url) {
     if (!url) return null;
     let img = this._skins.get(url);
@@ -127,7 +133,7 @@
   };
 
   Render._grid = function (ctx) {
-    const v = this.viewBounds(), step = 50;
+    const v = this.viewBounds(), step = 50, world = CFG.worldSize;
     const x0 = Math.floor(v.x0 / step) * step, x1 = Math.ceil(v.x1 / step) * step;
     const y0 = Math.floor(v.y0 / step) * step, y1 = Math.ceil(v.y1 / step) * step;
     ctx.lineWidth = 1 / this.camera.scale;
@@ -136,6 +142,34 @@
     for (let x = x0; x <= x1; x += step) { ctx.moveTo(x, v.y0); ctx.lineTo(x, v.y1); }
     for (let y = y0; y <= y1; y += step) { ctx.moveTo(v.x0, y); ctx.lineTo(v.x1, y); }
     ctx.stroke();
+
+    const major = world / 3;
+    ctx.save();
+    ctx.lineWidth = 3 / this.camera.scale;
+    ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+    ctx.beginPath();
+    for (let i = 1; i < 3; i++) {
+      const p = major * i;
+      ctx.moveTo(p, 0); ctx.lineTo(p, world);
+      ctx.moveTo(0, p); ctx.lineTo(world, p);
+    }
+    ctx.stroke();
+
+    const px = this.camera.scale;
+    if (px > 0.18) {
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '800 ' + Math.max(90, 130 / px) + 'px sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.055)';
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const cx = major * (col + 0.5), cy = major * (row + 0.5);
+          if (cx > v.x0 - major && cx < v.x1 + major && cy > v.y0 - major && cy < v.y1 + major) {
+            ctx.fillText('' + (row * 3 + col + 1), cx, cy);
+          }
+        }
+      }
+    }
+    ctx.restore();
   };
 
   Render._cell = function (ctx, c) {
@@ -269,15 +303,37 @@
 
   Render._minimap = function (snap) {
     const ctx = this.ctx, mobile = this.w < 760;
-    const s = mobile ? 92 : 148, pad = mobile ? 10 : 16;
+    const s = mobile ? 108 : 166, pad = mobile ? 10 : 16;
     const x = mobile ? pad : this.w - s - pad;
     const y = mobile ? 122 : this.h - s - pad;
     const k = s / snap.world;
+    const me = snap.me ? this._sectorInfo(snap.me.x, snap.me.y, snap.world) : null;
     ctx.fillStyle = 'rgba(8,10,24,0.45)'; this._round(ctx, x, y, s, s, mobile ? 6 : 12); ctx.fill();
+
+    if (me) {
+      ctx.fillStyle = 'rgba(22,141,232,0.24)';
+      ctx.fillRect(x + me.col * s / 3, y + me.row * s / 3, s / 3, s / 3);
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 1; i < 3; i++) {
+      const p = i * s / 3;
+      ctx.moveTo(x + p, y); ctx.lineTo(x + p, y + s);
+      ctx.moveTo(x, y + p); ctx.lineTo(x + s, y + p);
+    }
+    ctx.stroke();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = (mobile ? '700 9px ' : '700 11px ') + 'sans-serif';
+    for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
+      const id = row * 3 + col + 1;
+      ctx.fillStyle = me && me.id === id ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.32)';
+      ctx.fillText('' + id, x + (col + 0.5) * s / 3, y + (row + 0.5) * s / 3);
+    }
+
     for (const p of snap.players) {
       ctx.fillStyle = p.isMe ? '#7CFFB0' : 'rgba(255,255,255,0.45)';
       ctx.beginPath();
-      ctx.arc(x + p.x * k, y + p.y * k, p.isMe ? (mobile ? 3 : 4) : 2 + Math.min(mobile ? 2 : 4, p.mass / 500), 0, U.TAU);
+      ctx.arc(x + p.x * k, y + p.y * k, p.isMe ? (mobile ? 3.5 : 4.5) : 2 + Math.min(mobile ? 2 : 4, p.mass / 500), 0, U.TAU);
       ctx.fill();
     }
   };
@@ -339,7 +395,8 @@
 
     const mass = snap.me ? Math.floor(snap.me.mass) : 0;
     const maxMass = snap.me ? Math.floor(snap.me.maxMass) : 0;
-    const text = mobile ? ('Mass ' + mass + '  Best ' + maxMass) : ('Mass ' + mass + '   Best ' + maxMass + (snap.me && snap.me.cells > 1 ? '   Cells ' + snap.me.cells : ''));
+    const sector = snap.me ? this._sectorInfo(snap.me.x, snap.me.y, snap.world || CFG.worldSize).id : 0;
+    const text = mobile ? ('Mass ' + mass + '  Best ' + maxMass + (sector ? '  S' + sector : '')) : ('Mass ' + mass + '   Best ' + maxMass + (sector ? '   Sector ' + sector : '') + (snap.me && snap.me.cells > 1 ? '   Cells ' + snap.me.cells : ''));
     const w = mobile ? Math.min(this.w - 24, Math.max(210, ctx.measureText(text).width + 20)) : Math.max(230, ctx.measureText(text).width + 28);
     const x = mobile ? (this.w - w) / 2 : (this.w - w) / 2;
     const y = mobile ? 10 : this.h - 29;

@@ -92,12 +92,12 @@
       const ca = Math.cos(ang), sa = Math.sin(ang);
       const r = radius(half);
       const launch = U.clamp(
-        Math.max(CFG.splitImpulse, r * (CFG.splitLaunchRadii || 4.4) * CFG.frictionPerSec),
+        Math.max(CFG.splitImpulse, r * (CFG.splitLaunchRadii || 3.0) * CFG.frictionPerSec),
         CFG.splitImpulse,
-        CFG.splitImpulseMax || 12000
+        CFG.splitImpulseMax || 6500
       );
-      const sep = r * (CFG.splitStartSeparation || 2.15);
-      const back = sep * (CFG.splitBackPush || 0.35);
+      const sep = r * (CFG.splitStartSeparation || 1.55);
+      const back = sep * (CFG.splitBackPush || 0.25);
       c.x = U.clamp(c.x - ca * back, r, this.size - r);
       c.y = U.clamp(c.y - sa * back, r, this.size - r);
       const nc = this._newCell(p,
