@@ -74,16 +74,22 @@ G.CFG = {
   // bundled local skins used by the menu and bots
   skinPresets: [
     '',
+    '/assets/skins/cwal/ring.png',
+    '/assets/skins/cwal/halo.png',
+    '/assets/skins/cwal/circles.png',
+    '/assets/skins/cwal/star.png',
+    '/assets/skins/cwal/wolf.png',
+    '/assets/skins/cwal/dragon.png',
+    '/assets/skins/cwal/magatama.png',
+    '/assets/skins/cwal/ghost.png',
+    '/assets/skins/cwal/bat.png',
+    '/assets/skins/cwal/daemon.png',
+    '/assets/skins/cwal/kemomimi.jpg',
     '/assets/skins/ring.svg',
     '/assets/skins/halo.svg',
     '/assets/skins/circles.svg',
     '/assets/skins/wolf.svg',
     '/assets/skins/dragon.svg',
-    '/assets/skins/magatama.svg',
-    '/assets/skins/ghost.svg',
-    '/assets/skins/bat.svg',
-    '/assets/skins/daemon.svg',
-    '/assets/skins/star.svg',
   ],
   // active skills (key -> effect). cd/dur in seconds.
   skills: {
