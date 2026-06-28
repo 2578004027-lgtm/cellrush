@@ -97,7 +97,11 @@
   Render.clear = function () {
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.fillStyle = '#0d1020';
+    const g = ctx.createLinearGradient(0, 0, this.w, this.h);
+    g.addColorStop(0, '#080b18');
+    g.addColorStop(0.45, '#0c1024');
+    g.addColorStop(1, '#090815');
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.w, this.h);
   };
 
@@ -178,15 +182,21 @@
     ctx.translate(-cam.x, -cam.y);
 
     this._grid(ctx);
-    ctx.strokeStyle = 'rgba(120,140,220,0.35)';
-    ctx.lineWidth = 6 / cam.scale;
+    const border = ctx.createLinearGradient(0, 0, snap.world, snap.world);
+    border.addColorStop(0, 'rgba(52,145,255,0.50)'); border.addColorStop(1, 'rgba(255,144,0,0.34)');
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 7 / cam.scale;
     ctx.strokeRect(0, 0, snap.world, snap.world);
 
     const cb = this.cullBounds();
     for (const f of snap.food) {
       if (f.x < cb.x0 || f.x > cb.x1 || f.y < cb.y0 || f.y > cb.y1) continue;
       const s = Math.max(3 / cam.scale, f.r * 1.55);
+      ctx.save();
+      ctx.globalAlpha = 0.95;
       ctx.fillStyle = f.color; ctx.fillRect(f.x - s * 0.5, f.y - s * 0.5, s, s);
+      ctx.globalAlpha = 0.22; ctx.fillStyle = '#fff'; ctx.fillRect(f.x - s * 0.22, f.y - s * 0.22, s * 0.44, s * 0.44);
+      ctx.restore();
     }
     for (const e of snap.ejected) {
       if (e.x + e.r < cb.x0 || e.x - e.r > cb.x1 || e.y + e.r < cb.y0 || e.y - e.r > cb.y1) continue;
@@ -375,17 +385,36 @@
     const v = this.viewBounds(), step = 50, world = CFG.worldSize;
     const x0 = Math.floor(v.x0 / step) * step, x1 = Math.ceil(v.x1 / step) * step;
     const y0 = Math.floor(v.y0 / step) * step, y1 = Math.ceil(v.y1 / step) * step;
+
+    // subtle cwal-style sector tint, only 9 rects per frame
+    const major = world / 3;
+    ctx.save();
+    for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
+      const x = col * major, y = row * major;
+      if (x > v.x1 || x + major < v.x0 || y > v.y1 || y + major < v.y0) continue;
+      ctx.fillStyle = ((row + col) % 2) ? 'rgba(22,141,232,0.020)' : 'rgba(255,144,0,0.014)';
+      ctx.fillRect(x, y, major, major);
+    }
+
     ctx.lineWidth = 1 / this.camera.scale;
-    ctx.strokeStyle = 'rgba(255,255,255,0.045)';
+    ctx.strokeStyle = 'rgba(104,130,190,0.075)';
     ctx.beginPath();
     for (let x = x0; x <= x1; x += step) { ctx.moveTo(x, v.y0); ctx.lineTo(x, v.y1); }
     for (let y = y0; y <= y1; y += step) { ctx.moveTo(v.x0, y); ctx.lineTo(v.x1, y); }
     ctx.stroke();
 
-    const major = world / 3;
-    ctx.save();
-    ctx.lineWidth = 3 / this.camera.scale;
-    ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+    const bigStep = step * 4;
+    const bx0 = Math.floor(v.x0 / bigStep) * bigStep, bx1 = Math.ceil(v.x1 / bigStep) * bigStep;
+    const by0 = Math.floor(v.y0 / bigStep) * bigStep, by1 = Math.ceil(v.y1 / bigStep) * bigStep;
+    ctx.lineWidth = 1.4 / this.camera.scale;
+    ctx.strokeStyle = 'rgba(120,155,230,0.105)';
+    ctx.beginPath();
+    for (let x = bx0; x <= bx1; x += bigStep) { ctx.moveTo(x, v.y0); ctx.lineTo(x, v.y1); }
+    for (let y = by0; y <= by1; y += bigStep) { ctx.moveTo(v.x0, y); ctx.lineTo(v.x1, y); }
+    ctx.stroke();
+
+    ctx.lineWidth = 3.5 / this.camera.scale;
+    ctx.strokeStyle = 'rgba(125,155,255,0.22)';
     ctx.beginPath();
     for (let i = 1; i < 3; i++) {
       const p = major * i;
@@ -397,8 +426,8 @@
     const px = this.camera.scale;
     if (px > 0.18) {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = '800 ' + Math.max(90, 130 / px) + 'px sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.055)';
+      ctx.font = '900 ' + Math.max(90, 130 / px) + 'px sans-serif';
+      ctx.fillStyle = 'rgba(180,205,255,0.060)';
       for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 3; col++) {
           const cx = major * (col + 0.5), cy = major * (row + 0.5);
@@ -548,8 +577,8 @@
       if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
     }
     ctx.closePath();
-    ctx.fillStyle = 'rgba(70,225,100,0.82)'; ctx.fill();
-    ctx.lineWidth = Math.max(2, r * 0.04); ctx.strokeStyle = '#2a9f44'; ctx.stroke();
+    ctx.fillStyle = 'rgba(80,235,118,0.86)'; ctx.fill();
+    ctx.lineWidth = Math.max(2, r * 0.045); ctx.strokeStyle = 'rgba(30,150,70,0.95)'; ctx.stroke();
   };
 
   // turn sim events into transient ring effects
