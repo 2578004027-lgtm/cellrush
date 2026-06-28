@@ -446,7 +446,7 @@ function viewFor(p) {
     cx /= tm; cy /= tm; mass = tm;
   }
   // Oversend enough for the closest Agar-style camera so food/cells never pop at edges.
-  const half = Math.max(1250, (api.radius(mass) + CFG.view.base) * 2.15);
+  const half = Math.max(1850, (api.radius(mass) + CFG.view.base) * 2.35);
   return { x0: cx - half * 1.45, x1: cx + half * 1.45, y0: cy - half * 1.08, y1: cy + half * 1.08 };
 }
 setInterval(() => {

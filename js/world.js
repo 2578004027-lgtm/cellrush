@@ -116,6 +116,17 @@
     const loss = Math.min(lossMass, Math.max(0, c.mass - CFG.startMass));
     c.mass -= loss;
     const r = radius(c.mass);
+    if (kind === 'thorn') {
+      const vm = def.mass || CFG.virusMass;
+      const vr = radius(vm);
+      this.viruses.push({
+        id: U.uid(), x: U.clamp(c.x + ca * (r + vr + 8), vr, this.size - vr), y: U.clamp(c.y + sa * (r + vr + 8), vr, this.size - vr),
+        mass: vm, feed: 0, vx: ca * (def.speed || CFG.virusShootSpeed), vy: sa * (def.speed || CFG.virusShootSpeed),
+        ownerId: p.id, kind: 'thorn', angle: ang, bornAt: this.time,
+      });
+      this.events.push({ type: 'thornShoot', x: c.x + ca * r, y: c.y + sa * r, r: vr, color: def.color || '#76ff45', angle: ang });
+      return;
+    }
     this.ejected.push({
       id: U.uid(), x: c.x + ca * (r + 10), y: c.y + sa * (r + 10), mass: def.mass || CFG.ejectMass,
       vx: ca * (def.speed || CFG.ejectSpeed), vy: sa * (def.speed || CFG.ejectSpeed), color: def.color || p.color.css,
@@ -244,8 +255,8 @@
     this._capEjected();
     for (const v of this.viruses) {
       if (v.vx || v.vy) {
-        v.x += v.vx * dt; v.y += v.vy * dt; v.vx *= fr; v.vy *= fr;
-        if (Math.hypot(v.vx, v.vy) < 8) { v.vx = 0; v.vy = 0; }
+        v.x += v.vx * dt; v.y += v.vy * dt; const vf = v.kind === 'thorn' ? Math.exp(-2.15 * dt) : fr; v.vx *= vf; v.vy *= vf;
+        if (Math.hypot(v.vx, v.vy) < 8) { v.vx = 0; v.vy = 0; v.kind = ''; v.ownerId = ''; }
         const r = radius(v.mass);
         v.x = U.clamp(v.x, r, this.size - r); v.y = U.clamp(v.y, r, this.size - r);
       }
@@ -445,10 +456,18 @@
       // viruses: a big cell that covers one pops into pieces (admin cells just absorb)
       for (const v of this.viruses) {
         if (v._dead) continue;
-        if (c.mass > v.mass * 1.15 && U.dist(c.x, c.y, v.x, v.y) < r - radius(v.mass) * 0.6) {
+        const vr = radius(v.mass);
+        const dcv = U.dist(c.x, c.y, v.x, v.y);
+        if (v.kind === 'thorn' && v.ownerId !== c.ownerId && dcv < r + vr * 0.72) {
+          v._dead = true; virusPopped = true;
+          this.events.push({ type: 'pop', x: c.x, y: c.y, r: radius(c.mass), color: '#7be37b', angle: Math.atan2(v.vy || 0, v.vx || 0) });
+          if (!(cp && cp.admin)) this._popCell(c, Math.atan2(v.vy || 0, v.vx || 0), 1.35);
+          continue;
+        }
+        if (c.mass > v.mass * 1.15 && dcv < r - vr * 0.6) {
           c.mass += v.mass; v._dead = true; virusPopped = true;
-          this.events.push({ type: 'pop', x: c.x, y: c.y, r: radius(c.mass), color: '#7be37b' });
-          if (!(cp && cp.admin)) this._popCell(c, Math.atan2(c.vy || 0, c.vx || 0));
+          this.events.push({ type: 'pop', x: c.x, y: c.y, r: radius(c.mass), color: '#7be37b', angle: Math.atan2(c.vy || 0, c.vx || 0) });
+          if (!(cp && cp.admin)) this._popCell(c, Math.atan2(c.vy || 0, c.vx || 0), 1.0);
         }
       }
       // other cells
@@ -484,7 +503,7 @@
   };
 
   // explode a cell that swallowed a virus into many small pieces
-  World.prototype._popCell = function (c, biasAngle) {
+  World.prototype._popCell = function (c, biasAngle, forceMult) {
     const p = this.players.get(c.ownerId);
     if (!p) return;
     const pieces = Math.min(CFG.maxCells - p.cells.length, Math.max(7, Math.floor(c.mass / 85)));
@@ -501,7 +520,7 @@
         U.clamp(c.x + Math.cos(ang) * rr * 0.45, rr, this.size - rr),
         U.clamp(c.y + Math.sin(ang) * rr * 0.45, rr, this.size - rr),
         each);
-      const impulse = CFG.splitImpulse * U.rand(0.9, 1.45);
+      const impulse = CFG.splitImpulse * (forceMult || 1) * U.rand(0.95, 1.75);
       nc.vx = Math.cos(ang) * impulse;
       nc.vy = Math.sin(ang) * impulse;
       nc.mergeAt = merge;
@@ -532,7 +551,7 @@
 
     for (const f of w.food) if (inView(f.x, f.y, 8)) out.food.push({ id: f.id, x: f.x, y: f.y, r: radius(f.mass), color: f.color });
     for (const e of w.ejected) { const r = radius(e.mass); if (inView(e.x, e.y, r)) out.ejected.push({ id: e.id, x: e.x, y: e.y, r, color: e.color, kind: e.kind || '', angle: e.angle || 0 }); }
-    for (const v of w.viruses) { const r = radius(v.mass); if (inView(v.x, v.y, r)) out.viruses.push({ id: v.id, x: v.x, y: v.y, r, mass: v.mass }); }
+    for (const v of w.viruses) { const r = radius(v.mass); if (inView(v.x, v.y, r)) out.viruses.push({ id: v.id, x: v.x, y: v.y, r, mass: v.mass, vx: v.vx || 0, vy: v.vy || 0, kind: v.kind || '', angle: v.angle || 0 }); }
 
     for (const p of w.players.values()) {
       if (p.alive) { out.stats.alive++; if (p.isBot) out.stats.bots++; else out.stats.humans++; }

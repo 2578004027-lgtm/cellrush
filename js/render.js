@@ -100,7 +100,7 @@
       if (classic) {
         // Agar.io-like camera: close at spawn, then slowly zooms out by cell radius.
         const r = G.radius(mass);
-        want = U.clamp(Math.pow(Math.min(1, 70 / (r + 20)), 0.34) * 0.94, 0.24, 1.04);
+        want = U.clamp(0.56 * Math.pow(200 / Math.max(80, mass), 0.11), 0.24, 0.62);
       } else {
         want = U.clamp((this.h / 2) / (CFG.view.margin * (G.radius(mass) + CFG.view.base)), CFG.view.min, CFG.view.max);
       }
@@ -213,7 +213,7 @@
     for (const f of snap.food) {
       if (f.x < cb.x0 || f.x > cb.x1 || f.y < cb.y0 || f.y > cb.y1) continue;
       const classicFood = (G.settings.mapTheme || 'classic') === 'classic';
-      const s = classicFood ? Math.max(8.8 / cam.scale, f.r * 1.85) : Math.max(3 / cam.scale, f.r * 1.55);
+      const s = classicFood ? Math.max(6.4 / cam.scale, f.r * 1.45) : Math.max(3 / cam.scale, f.r * 1.55);
       ctx.save();
       ctx.globalAlpha = 0.96;
       ctx.fillStyle = f.color;
@@ -610,17 +610,26 @@
   Render._virus = function (ctx, v) {
     const classic = (G.settings.mapTheme || 'classic') === 'classic';
     const spikes = classic ? 28 : 20, r = v.r, ir = r * (classic ? 0.82 : 0.86);
+    const moving = v.kind === 'thorn' || Math.hypot(v.vx || 0, v.vy || 0) > 20;
+    const a0 = moving ? Math.atan2(v.vy || 0, v.vx || 0) + (performance.now() || 0) * 0.006 : 0;
+    ctx.save();
+    if (moving) {
+      const a = Math.atan2(v.vy || 0, v.vx || 0), tail = Math.min(r * 1.9, Math.hypot(v.vx || 0, v.vy || 0) * 0.018);
+      const g = ctx.createLinearGradient(v.x - Math.cos(a) * tail, v.y - Math.sin(a) * tail, v.x, v.y);
+      g.addColorStop(0, 'rgba(80,235,118,0)'); g.addColorStop(1, 'rgba(80,235,118,0.28)');
+      ctx.strokeStyle = g; ctx.lineWidth = Math.max(4, r * 0.18); ctx.beginPath(); ctx.moveTo(v.x - Math.cos(a) * tail, v.y - Math.sin(a) * tail); ctx.lineTo(v.x, v.y); ctx.stroke();
+    }
     ctx.beginPath();
     for (let i = 0; i < spikes * 2; i++) {
-      const ang = Math.PI * i / spikes, rr = (i % 2) ? ir : r * (classic ? 1.12 : 1.05);
+      const ang = a0 + Math.PI * i / spikes, rr = (i % 2) ? ir : r * (classic ? 1.12 : 1.05);
       const x = v.x + Math.cos(ang) * rr, y = v.y + Math.sin(ang) * rr;
       if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
     }
     ctx.closePath();
     ctx.fillStyle = classic ? '#33dd33' : 'rgba(80,235,118,0.86)'; ctx.fill();
     ctx.lineWidth = Math.max(2, r * (classic ? 0.055 : 0.045)); ctx.strokeStyle = classic ? '#199b24' : 'rgba(30,150,70,0.95)'; ctx.stroke();
+    ctx.restore();
   };
-
   // turn sim events into transient ring effects
   Render._spawnFx = function (events) {
     if (!G.settings.visualFx || !events) return;
@@ -628,10 +637,10 @@
       let msg = null;
       if (ev.type === 'split') continue;
       else if (ev.type === 'merge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 1.9, r1: ev.r * 0.6, age: 0, ttl: 0.40, color: ev.color, flash: true }); msg = '\u5408\u4f53\u5b8c\u6210'; }
-      else if (ev.type === 'pop') { for (let i = 0; i < 3; i++) this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * (2.4 + i), age: -i * 0.06, ttl: 0.55, color: ev.color }); msg = '\u7eff\u523a\u7206\u5f00'; }
+      else if (ev.type === 'pop') { for (let i = 0; i < 4; i++) this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.35, r1: ev.r * (1.8 + i * 0.55), age: -i * 0.045, ttl: 0.62, color: ev.color, angle: ev.angle || 0 }); msg = '\u7eff\u523a\u7206\u5f00'; }
       else if (ev.type === 'revenge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.7, r1: ev.r * 2.2, age: 0, ttl: 0.45, color: ev.color }); msg = '\u53cd\u566c\u6210\u529f'; }
       else if (ev.type === 'grow') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 1.8, age: 0, ttl: 0.55, color: ev.color }); msg = '\u53d8\u5927'; }
-      else if (ev.type === 'thorn') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 2.5, age: 0, ttl: 0.42, color: ev.color }); msg = '\u5410\u523a'; }
+      else if (ev.type === 'thorn' || ev.type === 'thornShoot') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.35, r1: ev.r * 1.45, age: 0, ttl: 0.30, color: ev.color, angle: ev.angle || 0 }); msg = '\u5410\u523a'; }
       else if (ev.type === 'poison') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 2.0, age: 0, ttl: 0.5, color: ev.color }); msg = '\u4e2d\u6bd2'; }
       else if (ev.type === 'silence') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 1.8, r1: ev.r * 0.8, age: 0, ttl: 0.45, color: ev.color }); msg = '\u9759\u9ed8'; }
       if (msg && (!this._feed.length || this._feed[this._feed.length - 1].text !== msg || this._feed[this._feed.length - 1].age > 0.5)) {
@@ -651,6 +660,18 @@
       ctx.beginPath(); ctx.arc(f.x, f.y, Math.max(0.5, r), 0, U.TAU);
       ctx.lineWidth = Math.max(1.5, r * 0.14); ctx.strokeStyle = f.color; ctx.stroke();
       if (f.flash) { ctx.globalAlpha = (1 - t) * 0.3; ctx.fillStyle = '#fff'; ctx.fill(); }
+      if (typeof f.angle === 'number') {
+        const a = f.angle;
+        ctx.globalAlpha = (1 - t) * 0.46;
+        ctx.strokeStyle = f.color;
+        ctx.lineWidth = Math.max(2, r * 0.08);
+        ctx.beginPath();
+        ctx.moveTo(f.x - Math.cos(a) * r * 0.25, f.y - Math.sin(a) * r * 0.25);
+        ctx.lineTo(f.x + Math.cos(a) * r * 0.92, f.y + Math.sin(a) * r * 0.92);
+        ctx.moveTo(f.x + Math.cos(a + 2.55) * r * 0.55, f.y + Math.sin(a + 2.55) * r * 0.55);
+        ctx.lineTo(f.x + Math.cos(a - 2.55) * r * 0.55, f.y + Math.sin(a - 2.55) * r * 0.55);
+        ctx.stroke();
+      }
       ctx.restore();
     }
   };
