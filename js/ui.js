@@ -176,6 +176,7 @@
 
     this.settings = document.getElementById('settings');
     this.adminPanel = document.getElementById('admin-panel');
+    this.helpPanel = document.getElementById('help-panel');
     this.adminStatus = document.getElementById('admin-tune-status');
     const sound = document.getElementById('set-sound');
     const names = document.getElementById('set-names');
@@ -240,6 +241,9 @@
     this.setAdminTuning({ tuning: this.localAdminTuning() });
     this.renderSkillShop();
     this.initChat();
+    this.initSettingsTabs();
+    const helpClose = document.getElementById('help-close');
+    if (helpClose) helpClose.addEventListener('click', () => this.closeHelp());
 
     document.getElementById('gear').addEventListener('click', () => this.openSettings());
     document.getElementById('resume').addEventListener('click', () => this.closeSettings());
@@ -252,12 +256,14 @@
       const ae = document.activeElement;
       const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA');
       if (e.key === 'Enter' && this.cbs.isPlaying && this.cbs.isPlaying() && !typing && !this.isTypingChat()) { e.preventDefault(); this.openChat(); return; }
+      if (e.key && e.key.toLowerCase() === 'h' && this.cbs.isPlaying && this.cbs.isPlaying() && !typing) { e.preventDefault(); this.toggleHelp(); return; }
       if (e.ctrlKey && e.shiftKey && e.key && e.key.toLowerCase() === 'a') {
         e.preventDefault();
         if (this.cbs.isAdmin && this.cbs.isAdmin()) this.openAdminPanel();
         return;
       }
       if (e.key !== 'Escape') return;
+      if (this.helpPanel && !this.helpPanel.classList.contains('hidden')) { this.closeHelp(); return; }
       if (this.adminPanel && !this.adminPanel.classList.contains('hidden')) { this.closeAdminPanel(); return; }
       if (this.settings.classList.contains('hidden')) this.openSettings();
       else this.closeSettings();
@@ -314,9 +320,50 @@
     }).join('');
   };
 
+
+  UI.initSettingsTabs = function () {
+    if (!this.settings) return;
+    const nav = this.settings.querySelector('.settings-nav');
+    const content = this.settings.querySelector('.settings-content');
+    if (!nav || !content) return;
+    const tabOf = (el) => {
+      const id = el.querySelector && el.querySelector('input') ? (el.querySelector('input').id || '') : (el.id || '');
+      if (id === 'set-sound') return 'sound';
+      if (id === 'skill-shop' || id === 'account-status' || id === 'set-admin-key' || el.classList.contains('admin-row')) return 'skill';
+      if (/visual|names|minimap|game-stats|perf-stats|player-status/.test(id)) return 'visual';
+      if (/cursor|enemy|mass|split|autosplit|death|chat|signal|edge/.test(id)) return 'control';
+      if (el.classList.contains('set-help')) return 'control';
+      return 'visual';
+    };
+    this._tabItems = Array.from(content.children).filter((el) => !['resume', 'tomenu'].includes(el.id));
+    this._tabItems.forEach((el) => { el.dataset.tab = tabOf(el); });
+    this._tabButtons = Array.from(nav.querySelectorAll('button'));
+    this._tabButtons.forEach((btn) => btn.addEventListener('click', () => this.showSettingsTab(btn.dataset.tab || 'visual')));
+    this.showSettingsTab('visual');
+  };
+  UI.showSettingsTab = function (tab) {
+    this._settingsTab = tab || 'visual';
+    if (this._tabButtons) this._tabButtons.forEach((b) => b.classList.toggle('active', (b.dataset.tab || 'visual') === this._settingsTab));
+    if (this._tabItems) this._tabItems.forEach((el) => { el.style.display = (el.dataset.tab === this._settingsTab || el.tagName === 'H2') ? '' : 'none'; });
+  };
+  UI.openHelp = function () {
+    if (!this.helpPanel || !this.cbs.isPlaying()) return;
+    this.helpPanel.classList.remove('hidden');
+    this.cbs.onPause(true);
+  };
+  UI.closeHelp = function () {
+    if (!this.helpPanel || this.helpPanel.classList.contains('hidden')) return;
+    this.helpPanel.classList.add('hidden');
+    if ((!this.settings || this.settings.classList.contains('hidden')) && (!this.adminPanel || this.adminPanel.classList.contains('hidden'))) this.cbs.onPause(false);
+  };
+  UI.toggleHelp = function () {
+    if (!this.helpPanel || this.helpPanel.classList.contains('hidden')) this.openHelp(); else this.closeHelp();
+  };
+
   UI.openSettings = function () {
     if (!this.cbs.isPlaying()) return;
     this.settings.classList.remove('hidden');
+    this.showSettingsTab(this._settingsTab || 'visual');
     this.cbs.onPause(true);
   };
   UI.closeSettings = function () {
@@ -390,6 +437,7 @@
     this.death.classList.add('hidden');
     if (this.settings) this.settings.classList.add('hidden');
     this.menu.classList.remove('hidden');
+    if (this.helpPanel) this.helpPanel.classList.add('hidden');
     const el = document.getElementById('neterr');
     if (el) { el.textContent = msg; el.classList.remove('hidden'); }
   };

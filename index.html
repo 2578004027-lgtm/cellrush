@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>CellRush</title>
 <link rel="icon" href="data:," />
-<link rel="stylesheet" href="style.css?v=20260628-32" />
+<link rel="stylesheet" href="style.css?v=20260628-33" />
 <script>
 window.addEventListener('error', function (e) {
   var box = document.getElementById('client-error-overlay');
@@ -81,7 +81,7 @@ window.addEventListener('error', function (e) {
       <button id="play" class="menu-button play-button">&#24320;&#22987;</button>
       <button id="spectate" class="menu-button spectate-button">&#35266;&#25112;</button>
       <div id="neterr" class="neterr hidden"></div>
-      <div class="help"><b>&#31354;&#26684;</b> &#20998;&#35010; / <b>Shift+Space</b> 2X / <b>Ctrl+Space</b> 4X - <b>W</b> &#24555;&#36895;&#21520;&#23394; - <b>S</b> &#26242;&#20572; - <b>L</b> &#38145;&#23450;&#26041;&#21521; - <b>G</b> &#22320;&#22270;&#26631;&#35760; - <b>Tab</b> &#35814;&#32454;&#27036;&#21333; - <b>?/?</b> &#35266;&#25112;&#20999;&#25442; - &#26412;&#23616;&#25968;&#25454;</div>
+      <div class="help"><b>&#31354;&#26684;</b> &#20998;&#35010; / <b>Shift+Space</b> 2X / <b>Ctrl+Space</b> 4X - <b>W</b> &#24555;&#36895;&#21520;&#23394; - <b>S</b> &#26242;&#20572; - <b>L</b> &#38145;&#23450;&#26041;&#21521; - <b>G</b> &#22320;&#22270;&#26631;&#35760; - <b>Tab</b> &#35814;&#32454;&#27036;&#21333; - <b>&#8592;/&#8594;</b> &#35266;&#25112;&#20999;&#25442; - <b>H</b> &#24110;&#21161; - &#26412;&#23616;&#25968;&#25454;</div>
     </section>
 
     <section class="right-panel">
@@ -118,9 +118,10 @@ window.addEventListener('error', function (e) {
 <div id="settings" class="overlay hidden">
   <div class="settings-panel">
     <nav class="settings-nav">
-      <button class="active">&#30011;&#38754;</button>
-      <button>&#25511;&#21046;</button>
-      <button>&#22768;&#38899;</button>
+      <button class="active" data-tab="visual">&#30011;&#38754;</button>
+      <button data-tab="control">&#25511;&#21046;</button>
+      <button data-tab="skill">&#25216;&#33021;</button>
+      <button data-tab="sound">&#22768;&#38899;</button>
     </nav>
     <div class="settings-content">
       <h2>&#35774;&#32622;</h2>
@@ -147,10 +148,31 @@ window.addEventListener('error', function (e) {
       <div class="row admin-row"><span>&#31649;&#29702;&#21592;&#23494;&#38053;<small>&#26381;&#21153;&#31471;&#39564;&#35777;</small></span><div class="admin-auth"><input id="set-admin-key" type="password" autocomplete="off" spellcheck="false" /><button id="set-admin-login" type="button">&#35299;&#38145;</button></div></div>
       <div id="account-status" class="account-status">&#28216;&#23458; - &#38075;&#30707; 99999</div>
       <div id="skill-shop" class="skill-shop"></div>
-      <div class="set-help">&#22522;&#30784;&#65306; <b>Q</b> &#20914;&#21050; &nbsp; <b>E</b> &#25252;&#30462; &nbsp; <b>R</b> &#30913;&#21560; &nbsp; <b>F</b> &#21512;&#20307;<br>&#29305;&#27530;&#65306; <b>1</b> &#21453;&#22124; &nbsp; <b>2</b> &#21464;&#22823; &nbsp; <b>3</b> &#21520;&#21050; &nbsp; <b>4</b> &#21520;&#27602; &nbsp; <b>5</b> &#38745;&#40664;<br>&#24555;&#25463;&#38190;&#65306; Space 1X / Shift+Space 2X / Ctrl+Space 4X / W &#24555;&#36895;&#21520;&#23394; / S &#26242;&#20572; / L &#38145;&#26041;&#21521; / G &#22320;&#22270;&#26631;&#35760; / Tab &#35814;&#32454;&#27036;&#21333; / ?? &#35266;&#25112;&#20999;&#25442;</div>
+      <div class="set-help">&#22522;&#30784;&#65306; <b>Q</b> &#20914;&#21050; &nbsp; <b>E</b> &#25252;&#30462; &nbsp; <b>R</b> &#30913;&#21560; &nbsp; <b>F</b> &#21512;&#20307;<br>&#29305;&#27530;&#65306; <b>1</b> &#21453;&#22124; &nbsp; <b>2</b> &#21464;&#22823; &nbsp; <b>3</b> &#21520;&#21050; &nbsp; <b>4</b> &#21520;&#27602; &nbsp; <b>5</b> &#38745;&#40664;<br>&#24555;&#25463;&#38190;&#65306; Space 1X / Shift+Space 2X / Ctrl+Space 4X / W &#24555;&#36895;&#21520;&#23394; / S &#26242;&#20572; / L &#38145;&#26041;&#21521; / G &#22320;&#22270;&#26631;&#35760; / Tab &#35814;&#32454;&#27036;&#21333; / &#8592;&#8594; &#35266;&#25112;&#20999;&#25442; / H &#24110;&#21161;</div>
       <button id="resume" class="menu-button play-button">&#32487;&#32493;</button>
       <button id="tomenu" class="menu-button ghost">&#20027;&#33756;&#21333;</button>
     </div>
+  </div>
+</div>
+
+<div id="help-panel" class="overlay hidden">
+  <div class="help-panel-box">
+    <h2>&#24555;&#25463;&#38190; / &#25216;&#33021;&#35828;&#26126;</h2>
+    <div class="help-grid-pop">
+      <div><b>Space</b><span>&#20998;&#35010;</span></div>
+      <div><b>Shift+Space</b><span>2X &#20998;&#35010;</span></div>
+      <div><b>Ctrl+Space</b><span>4X &#20998;&#35010;</span></div>
+      <div><b>W</b><span>&#24555;&#36895;&#21520;&#23394;&#23376;</span></div>
+      <div><b>Q/E/R/F</b><span>&#20914;&#21050;/&#25252;&#30462;/&#30913;&#21560;/&#21512;&#20307;</span></div>
+      <div><b>1-5</b><span>&#21453;&#22124;/&#21464;&#22823;/&#21520;&#21050;/&#21520;&#27602;/&#38745;&#40664;</span></div>
+      <div><b>G</b><span>&#21457;&#20986;&#22320;&#22270;&#26631;&#35760;</span></div>
+      <div><b>Tab</b><span>&#35814;&#32454;&#25490;&#34892;&#27036;</span></div>
+      <div><b>S</b><span>&#26242;&#20572;</span></div>
+      <div><b>L</b><span>&#38145;&#23450;&#31227;&#21160;&#26041;&#21521;</span></div>
+      <div><b>&#8592; / &#8594;</b><span>&#35266;&#25112;&#20999;&#25442;&#30446;&#26631;</span></div>
+      <div><b>Enter</b><span>&#25171;&#24320;&#32842;&#22825;</span></div>
+    </div>
+    <button id="help-close" class="menu-button play-button" type="button">&#20851;&#38381; H</button>
   </div>
 </div>
 
@@ -181,14 +203,14 @@ window.addEventListener('error', function (e) {
     </div>
   </div>
 </div>
-<script src="js/config.js?v=20260628-32"></script>
-<script src="js/util.js?v=20260628-32"></script>
-<script src="js/world.js?v=20260628-32"></script>
-<script src="js/input.js?v=20260628-32"></script>
-<script src="js/audio.js?v=20260628-32"></script>
-<script src="js/render.js?v=20260628-32"></script>
-<script src="js/ui.js?v=20260628-32"></script>
-<script src="js/transport-net.js?v=20260628-32"></script>
-<script src="js/main.js?v=20260628-32"></script>
+<script src="js/config.js?v=20260628-33"></script>
+<script src="js/util.js?v=20260628-33"></script>
+<script src="js/world.js?v=20260628-33"></script>
+<script src="js/input.js?v=20260628-33"></script>
+<script src="js/audio.js?v=20260628-33"></script>
+<script src="js/render.js?v=20260628-33"></script>
+<script src="js/ui.js?v=20260628-33"></script>
+<script src="js/transport-net.js?v=20260628-33"></script>
+<script src="js/main.js?v=20260628-33"></script>
 </body>
 </html>
