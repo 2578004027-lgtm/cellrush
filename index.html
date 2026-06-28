@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>CellRush</title>
 <link rel="icon" href="data:," />
-<link rel="stylesheet" href="style.css?v=20260628-24" />
+<link rel="stylesheet" href="style.css?v=20260628-26" />
 <script>
 window.addEventListener('error', function (e) {
   var box = document.getElementById('client-error-overlay');
@@ -22,6 +22,12 @@ window.addEventListener('error', function (e) {
 <body>
 <canvas id="game"></canvas>
 <div id="touch-stick" class="touch-stick"><div id="touch-stick-knob" class="touch-stick-knob"></div></div>
+
+<div id="chat-panel" class="chat-panel hidden">
+  <div id="chat-log" class="chat-log"></div>
+  <input id="chat-input" class="chat-input" maxlength="120" placeholder="Enter &#32842;&#22825; / Esc &#21462;&#28040;" autocomplete="off" spellcheck="false" />
+</div>
+
 <div id="touch-controls" class="touch-controls" aria-hidden="true">
   <div class="touch-row touch-row-main">
     <button type="button" class="touch-btn touch-split" data-action="split">&#20998;&#35010;</button>
@@ -134,6 +140,7 @@ window.addEventListener('error', function (e) {
       <label class="row"><span>&#20998;&#35010;&#39044;&#21028;<small>&#26174;&#31034;&#24403;&#21069;&#26368;&#22823;&#29699;&#20998;&#35010;&#33853;&#28857;</small></span><input type="checkbox" id="set-split-preview" /></label>
       <label class="row"><span>&#33258;&#21160;&#20998;&#35010;&#35686;&#25253;<small>&#25932;&#20154;&#21487;&#33021;&#20998;&#35010;&#21507;&#20320;&#26102;&#25552;&#31034;</small></span><input type="checkbox" id="set-autosplit-alert" /></label>
       <label class="row"><span>&#27515;&#20129;&#21518;&#22238;&#20027;&#33756;&#21333;<small>&#20687; cwal &#19968;&#26679;&#27515;&#20129;&#21518;&#30452;&#25509;&#22238;&#33756;&#21333;</small></span><input type="checkbox" id="set-death-menu" /></label>
+      <label class="row"><span>&#32842;&#22825;&#23460;<small>Enter &#25171;&#24320;&#65292;Esc &#20851;&#38381;</small></span><input type="checkbox" id="set-show-chat" /></label>
       <div class="row admin-row"><span>&#31649;&#29702;&#21592;&#23494;&#38053;<small>&#26381;&#21153;&#31471;&#39564;&#35777;</small></span><div class="admin-auth"><input id="set-admin-key" type="password" autocomplete="off" spellcheck="false" /><button id="set-admin-login" type="button">&#35299;&#38145;</button></div></div>
       <div id="account-status" class="account-status">&#28216;&#23458; - &#38075;&#30707; 99999</div>
       <div id="skill-shop" class="skill-shop"></div>
@@ -171,14 +178,14 @@ window.addEventListener('error', function (e) {
     </div>
   </div>
 </div>
-<script src="js/config.js?v=20260628-24"></script>
-<script src="js/util.js?v=20260628-24"></script>
-<script src="js/world.js?v=20260628-24"></script>
-<script src="js/input.js?v=20260628-24"></script>
-<script src="js/audio.js?v=20260628-24"></script>
-<script src="js/render.js?v=20260628-24"></script>
-<script src="js/ui.js?v=20260628-24"></script>
-<script src="js/transport-net.js?v=20260628-24"></script>
-<script src="js/main.js?v=20260628-24"></script>
+<script src="js/config.js?v=20260628-26"></script>
+<script src="js/util.js?v=20260628-26"></script>
+<script src="js/world.js?v=20260628-26"></script>
+<script src="js/input.js?v=20260628-26"></script>
+<script src="js/audio.js?v=20260628-26"></script>
+<script src="js/render.js?v=20260628-26"></script>
+<script src="js/ui.js?v=20260628-26"></script>
+<script src="js/transport-net.js?v=20260628-26"></script>
+<script src="js/main.js?v=20260628-26"></script>
 </body>
 </html>

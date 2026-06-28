@@ -187,6 +187,15 @@ const wss = new WebSocketServer({ server: httpServer });
 let nextId = 1;
 const clients = new Map();
 
+function cleanChatText(v) {
+  return (typeof v === 'string' ? v : '').replace(/[\r\n\t]/g, ' ').trim().slice(0, 120);
+}
+function broadcastChat(msg) {
+  const payload = JSON.stringify({ t: 'chat', name: msg.name || '', text: msg.text || '', system: !!msg.system, at: Date.now() });
+  for (const ws of clients.keys()) if (ws.readyState === 1) ws.send(payload);
+}
+function systemChat(text) { broadcastChat({ system: true, text }); }
+
 function applyColor(p, c) { if (c && typeof c.h === 'number') p.color = api.util.colorFromHue(c.h); }
 function applySkin(p, skin) {
   if (typeof skin !== 'string') return;
@@ -201,6 +210,7 @@ function makeClient(id) {
     deadNotified: false,
     seen: { food: new Map(), viruses: new Map(), ejected: new Map() },
     forceFull: { food: true, viruses: true, ejected: true },
+    lastChatAt: 0,
   };
 }
 function changed(prev, obj, fields) {
@@ -265,8 +275,8 @@ wss.on('connection', (ws) => {
     const p = world.players.get(id); if (!p) return;
     if (m.t === 'join') {
       p.name = (typeof m.name === 'string' ? m.name : 'Player').slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin);
-      if (m.spectate) { p.spectator = true; p.alive = false; p.cells = []; }
-      else { p.spectator = false; if (!p.alive || !p.cells.length) world.spawnPlayer(p); loginAccount(p, ws, m.account, m.password); }
+      if (m.spectate) { p.spectator = true; p.alive = false; p.cells = []; systemChat(p.name + ' \u5f00\u59cb\u89c2\u6218'); }
+      else { p.spectator = false; if (!p.alive || !p.cells.length) world.spawnPlayer(p); loginAccount(p, ws, m.account, m.password); systemChat(p.name + ' \u52a0\u5165\u4e86\u6e38\u620f'); }
     }
     else if (m.t === 'input') { world.applyInput(id, m); }
     else if (m.t === 'respawn') { if (m.name) p.name = ('' + m.name).slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin); p.spectator = false; world.spawnPlayer(p); client.deadNotified = false; }
@@ -279,6 +289,10 @@ wss.on('connection', (ws) => {
     } else if (m.t === 'adminTune') {
       if (!p.admin) sendAdminTune(ws, false, null, '\u6ca1\u6709\u6743\u9650');
       else sendAdminTune(ws, true, applyAdminTuning(m.params || null));
+    } else if (m.t === 'chat') {
+      const text = cleanChatText(m.text);
+      const nowChat = Date.now();
+      if (text && nowChat - (client.lastChatAt || 0) > 800) { client.lastChatAt = nowChat; broadcastChat({ name: p.name || 'Player', text, system: false }); }
     } else if (m.t === 'admin') {
       if (p.admin && m.on === false) p.admin = false;
     }
@@ -326,6 +340,7 @@ setInterval(() => {
       const reward = Math.min(35, Math.max(1, Math.floor((p.maxMass || 0) / 120) + Math.floor(survived / 60)));
       const earned = awardDiamonds(p, reward);
       if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'dead', maxMass: p.maxMass, survived, diamondsEarned: earned, diamonds: p.diamonds || 0 }));
+      systemChat((p.name || 'Player') + ' \u88ab\u5403\u6389\u4e86');
     }
   }
 }, 1000 / 30);

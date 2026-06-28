@@ -14,6 +14,9 @@
     this.passwordInput = document.getElementById('password');
     this.accountStatus = document.getElementById('account-status');
     this.skillShop = document.getElementById('skill-shop');
+    this.chatPanel = document.getElementById('chat-panel');
+    this.chatLog = document.getElementById('chat-log');
+    this.chatInput = document.getElementById('chat-input');
     this.account = null;
     this.skinsEl = document.getElementById('skins');
     this.profilesEl = document.getElementById('profiles');
@@ -191,6 +194,7 @@
     const splitPreview = document.getElementById('set-split-preview');
     const autosplitAlert = document.getElementById('set-autosplit-alert');
     const deathMenu = document.getElementById('set-death-menu');
+    const showChat = document.getElementById('set-show-chat');
     const adminKey = document.getElementById('set-admin-key');
     const adminLogin = document.getElementById('set-admin-login');
     sound.checked = G.settings.sound; names.checked = G.settings.names;
@@ -214,6 +218,7 @@
     bindBool(splitPreview, 'splitPreview');
     bindBool(autosplitAlert, 'autosplitAlert');
     bindBool(deathMenu, 'deathMenu');
+    bindBool(showChat, 'showChat');
     const unlockAdmin = () => {
       const key = adminKey ? adminKey.value.trim() : '';
       if (!key) return;
@@ -230,6 +235,7 @@
     if (adminReset) adminReset.addEventListener('click', () => { if (this.cbs.onAdminTune) this.cbs.onAdminTune(null); });
     this.setAdminTuning({ tuning: this.localAdminTuning() });
     this.renderSkillShop();
+    this.initChat();
 
     document.getElementById('gear').addEventListener('click', () => this.openSettings());
     document.getElementById('resume').addEventListener('click', () => this.closeSettings());
@@ -239,6 +245,9 @@
       this.menu.classList.remove('hidden');
     });
     window.addEventListener('keydown', (e) => {
+      const ae = document.activeElement;
+      const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA');
+      if (e.key === 'Enter' && this.cbs.isPlaying && this.cbs.isPlaying() && !typing && !this.isTypingChat()) { e.preventDefault(); this.openChat(); return; }
       if (e.ctrlKey && e.shiftKey && e.key && e.key.toLowerCase() === 'a') {
         e.preventDefault();
         if (this.cbs.isAdmin && this.cbs.isAdmin()) this.openAdminPanel();
@@ -249,6 +258,56 @@
       if (this.settings.classList.contains('hidden')) this.openSettings();
       else this.closeSettings();
     });
+  };
+
+  UI.escapeHtml = function (s) {
+    return ('' + (s || '')).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  };
+  UI.initChat = function () {
+    if (!this.chatPanel || !this.chatInput || !this.chatLog) return;
+    this.chatMessages = [];
+    this.chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); this.closeChat(); return; }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const text = (this.chatInput.value || '').trim();
+        this.chatInput.value = '';
+        this.closeChat();
+        if (text && this.cbs.onChat) this.cbs.onChat(text);
+      }
+    });
+  };
+  UI.isTypingChat = function () { return !!(this.chatPanel && this.chatPanel.classList.contains('active')); };
+  UI.openChat = function () {
+    if (!G.settings.showChat || !this.chatPanel || !this.chatInput) return;
+    this.chatPanel.classList.remove('hidden');
+    this.chatPanel.classList.add('active');
+    this.chatInput.focus();
+  };
+  UI.closeChat = function () {
+    if (!this.chatPanel || !this.chatInput) return;
+    this.chatPanel.classList.remove('active');
+    this.chatInput.blur();
+  };
+  UI.addChat = function (msg) {
+    if (!G.settings.showChat || !this.chatPanel || !this.chatLog) return;
+    const now = Date.now();
+    this.chatPanel.classList.remove('hidden');
+    const item = { at: now, name: msg.name || '', text: msg.text || '', system: !!msg.system };
+    this.chatMessages = (this.chatMessages || []).filter((m) => now - m.at < 18000);
+    this.chatMessages.push(item);
+    if (this.chatMessages.length > 8) this.chatMessages.splice(0, this.chatMessages.length - 8);
+    this.renderChat();
+    clearTimeout(this._chatHideTimer);
+    this._chatHideTimer = setTimeout(() => { if (!this.isTypingChat() && this.chatPanel) this.chatPanel.classList.add('hidden'); }, 9000);
+  };
+  UI.renderChat = function () {
+    if (!this.chatLog) return;
+    const rows = this.chatMessages || [];
+    this.chatLog.innerHTML = rows.map((m) => {
+      if (m.system) return '<div class="chat-msg system">' + this.escapeHtml(m.text) + '</div>';
+      return '<div class="chat-msg"><span class="name">' + this.escapeHtml(m.name || 'Player') + '</span>' + this.escapeHtml(m.text) + '</div>';
+    }).join('');
   };
 
   UI.openSettings = function () {

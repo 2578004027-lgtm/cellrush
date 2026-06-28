@@ -253,3 +253,22 @@ html, body {
 .admin-panel-actions button { flex: 1; height: 38px; border: 1px solid rgba(255,255,255,0.14); border-radius: 3px; background: var(--blue); color: #fff; font-weight: 700; cursor: pointer; }
 .admin-panel-actions button:last-child { background: #323232; }
 @media (max-width: 760px) { .admin-grid { grid-template-columns: 1fr; } .admin-panel-box { width: min(94vw, 430px); } }
+
+.chat-panel {
+  position: fixed; left: 12px; bottom: 82px; z-index: 8; width: min(360px, calc(100vw - 24px));
+  pointer-events: none; color: rgba(255,255,255,0.92); font-family: "Microsoft YaHei", sans-serif;
+}
+.chat-panel.hidden { display: none; }
+.chat-log { max-height: 168px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
+.chat-msg { width: fit-content; max-width: 100%; padding: 4px 8px; border-radius: 2px; background: rgba(37,37,37,0.50); font-size: 12px; line-height: 1.35; text-shadow: 0 1px 2px rgba(0,0,0,.8); word-break: break-word; }
+.chat-msg.system { color: #ffd250; background: rgba(70,55,18,0.50); }
+.chat-msg .name { color: #7cffb0; font-weight: 800; margin-right: 5px; }
+.chat-input { display: none; width: 100%; height: 32px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.15); border-radius: 2px; outline: none; padding: 0 10px; color: #fff; background: rgba(35,35,35,0.88); font-size: 13px; pointer-events: auto; }
+.chat-panel.active { pointer-events: auto; z-index: 20; }
+.chat-panel.active .chat-input { display: block; }
+.chat-panel.active .chat-log { max-height: 220px; }
+@media (pointer: coarse), (max-width: 760px) {
+  .chat-panel { left: 10px; bottom: 154px; width: min(310px, calc(100vw - 20px)); }
+  .chat-log { max-height: 112px; }
+  .chat-msg { font-size: 11px; padding: 3px 7px; }
+}

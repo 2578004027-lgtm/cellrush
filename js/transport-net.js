@@ -169,6 +169,8 @@
     } else if (m.t === 'dead') {
       this.alive = false;
       if (this.opts.onDead) this.opts.onDead(m);
+    } else if (m.t === 'chat') {
+      if (this.opts.onChat) this.opts.onChat(m);
     }
   };
   NetTransport.prototype.update = function (dt, input) {
@@ -221,6 +223,9 @@
   };
   NetTransport.prototype.adminLogin = function (key) {
     if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ t: 'adminAuth', key: key || '' }));
+  };
+  NetTransport.prototype.sendChat = function (text) {
+    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ t: 'chat', text: text || '' }));
   };
   NetTransport.prototype.close = function () { try { this.ws.close(); } catch (e) { /* */ } };
 
