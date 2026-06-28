@@ -460,24 +460,31 @@
 
   Render._leaderboard = function (snap) {
     const ctx = this.ctx, lb = snap.leaderboard || [], mobile = this.w < 760;
-    const w = mobile ? 154 : 208, x = this.w - w - (mobile ? 6 : 8), y = mobile ? 6 : 8;
+    const w = mobile ? 158 : 218, x = this.w - w - (mobile ? 6 : 10), y = mobile ? 6 : 10;
     const maxRows = mobile ? 5 : 10, rowH = mobile ? 18 : 23;
     ctx.save();
+    ctx.fillStyle = 'rgba(20,20,24,0.34)'; this._round(ctx, x, y, w, (mobile ? 31 : 38) + Math.min(lb.length, maxRows) * rowH, 4); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1; ctx.stroke();
     ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = 'rgba(210,210,210,0.92)';
-    ctx.font = (mobile ? '600 15px ' : '500 24px ') + '"Microsoft YaHei", sans-serif';
-    ctx.fillText('\u6392\u884c\u699c', x + w - 6, y + (mobile ? 18 : 24));
-    ctx.font = (mobile ? '500 11px ' : '500 12.5px ') + '"Microsoft YaHei", sans-serif';
+    ctx.fillStyle = 'rgba(235,235,235,0.94)';
+    ctx.font = (mobile ? '700 15px ' : '700 24px ') + '"Microsoft YaHei", sans-serif';
+    ctx.fillText('\u6392\u884c\u699c', x + w - 9, y + (mobile ? 19 : 27));
+    ctx.font = (mobile ? '600 11px ' : '600 12.5px ') + '"Microsoft YaHei", sans-serif';
     lb.slice(0, maxRows).forEach((e, i) => {
-      const rowY = y + (mobile ? 31 : 36) + i * rowH;
+      const rowY = y + (mobile ? 33 : 42) + i * rowH;
       let nm = e.name || 'Player';
       if (nm.length > (mobile ? 9 : 14)) nm = nm.slice(0, mobile ? 9 : 14) + '...';
-      const label = (i + 1) + ' [' + Math.floor(e.mass || 0) + '] ' + nm;
-      const tw = Math.min(w - 6, Math.max(mobile ? 76 : 92, ctx.measureText(label).width + 10));
-      ctx.fillStyle = e.isMe ? 'rgba(28,120,210,0.72)' : 'rgba(37,37,37,0.52)';
-      this._round(ctx, x + w - tw, rowY - 13, tw, mobile ? 16 : 19, 2); ctx.fill();
-      ctx.fillStyle = e.isMe ? '#ffffff' : 'rgba(245,245,245,0.92)';
-      ctx.fillText(label, x + w - 6, rowY);
+      const mass = Math.floor(e.mass || 0);
+      const label = (i + 1) + '. ' + nm + '  ' + mass;
+      const tw = Math.min(w - 10, Math.max(mobile ? 92 : 112, ctx.measureText(label).width + 14));
+      const gx = x + w - tw - 6;
+      const gy = rowY - 13;
+      const g = ctx.createLinearGradient(gx, gy, gx + tw, gy);
+      if (e.isMe) { g.addColorStop(0, 'rgba(22,141,232,0.88)'); g.addColorStop(1, 'rgba(255,144,0,0.58)'); }
+      else { g.addColorStop(0, 'rgba(54,54,58,0.58)'); g.addColorStop(1, 'rgba(30,30,34,0.45)'); }
+      ctx.fillStyle = g; this._round(ctx, gx, gy, tw, mobile ? 16 : 19, 2); ctx.fill();
+      ctx.fillStyle = e.isMe ? '#ffffff' : 'rgba(245,245,245,0.90)';
+      ctx.fillText(label, x + w - 12, rowY);
     });
     ctx.restore();
   };
@@ -489,11 +496,15 @@
     const y = mobile ? 122 : this.h - s - pad;
     const k = s / snap.world;
     const me = snap.me ? this._sectorInfo(snap.me.x, snap.me.y, snap.world) : null;
-    ctx.fillStyle = 'rgba(8,10,24,0.45)'; this._round(ctx, x, y, s, s, mobile ? 6 : 12); ctx.fill();
+    ctx.save();
+    ctx.fillStyle = 'rgba(8,10,24,0.48)'; this._round(ctx, x, y, s, s, mobile ? 6 : 12); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.09)'; ctx.lineWidth = 1; ctx.stroke();
 
     if (me) {
-      ctx.fillStyle = 'rgba(22,141,232,0.24)';
-      ctx.fillRect(x + me.col * s / 3, y + me.row * s / 3, s / 3, s / 3);
+      const gx = x + me.col * s / 3, gy = y + me.row * s / 3;
+      const grad = ctx.createLinearGradient(gx, gy, gx + s / 3, gy + s / 3);
+      grad.addColorStop(0, 'rgba(22,141,232,0.34)'); grad.addColorStop(1, 'rgba(255,144,0,0.20)');
+      ctx.fillStyle = grad; ctx.fillRect(gx, gy, s / 3, s / 3);
     }
     ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
     ctx.beginPath();
@@ -504,19 +515,22 @@
     }
     ctx.stroke();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = (mobile ? '700 9px ' : '700 11px ') + 'sans-serif';
+    ctx.font = (mobile ? '800 9px ' : '800 11px ') + 'sans-serif';
     for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
       const id = row * 3 + col + 1;
-      ctx.fillStyle = me && me.id === id ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.32)';
+      ctx.fillStyle = me && me.id === id ? 'rgba(255,255,255,0.98)' : 'rgba(255,255,255,0.30)';
       ctx.fillText('' + id, x + (col + 0.5) * s / 3, y + (row + 0.5) * s / 3);
     }
 
     for (const p of snap.players) {
-      ctx.fillStyle = p.isMe ? '#7CFFB0' : 'rgba(255,255,255,0.45)';
+      const px = x + p.x * k, py = y + p.y * k;
+      ctx.fillStyle = p.isMe ? '#7CFFB0' : 'rgba(255,255,255,0.46)';
       ctx.beginPath();
-      ctx.arc(x + p.x * k, y + p.y * k, p.isMe ? (mobile ? 3.5 : 4.5) : 2 + Math.min(mobile ? 2 : 4, p.mass / 500), 0, U.TAU);
+      ctx.arc(px, py, p.isMe ? (mobile ? 3.8 : 5) : 2 + Math.min(mobile ? 2 : 4, p.mass / 500), 0, U.TAU);
       ctx.fill();
+      if (p.isMe) { ctx.strokeStyle = 'rgba(124,255,176,0.55)'; ctx.beginPath(); ctx.arc(px, py, mobile ? 7 : 9, 0, U.TAU); ctx.stroke(); }
     }
+    ctx.restore();
   };
 
   // skill bar at bottom-center with cooldown sweep
@@ -528,9 +542,12 @@
       let x = mobile ? 10 : this.w / 2 - total / 2;
       for (const s of sk) {
         this._round(ctx, x, y, sz, sz, mobile ? 6 : 10);
-        ctx.fillStyle = 'rgba(8,10,24,0.7)'; ctx.fill();
+        const bg = ctx.createLinearGradient(x, y, x, y + sz);
+        bg.addColorStop(0, 'rgba(34,36,48,0.82)'); bg.addColorStop(1, 'rgba(8,10,24,0.74)');
+        ctx.fillStyle = bg; ctx.fill();
         ctx.lineWidth = s.active ? 3 : 2;
         ctx.strokeStyle = s.active ? '#fff' : s.color; ctx.stroke();
+        if (s.active) { ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = s.color; this._round(ctx, x + 3, y + 3, sz - 6, sz - 6, mobile ? 5 : 8); ctx.fill(); ctx.restore(); }
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillStyle = s.locked ? 'rgba(220,228,255,0.25)' : (s.remain > 0 ? 'rgba(220,228,255,0.45)' : s.color);
         ctx.font = '800 ' + Math.max(12, sz * 0.4) + 'px sans-serif';
