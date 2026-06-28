@@ -212,6 +212,7 @@
     this._hud(snap);
     this._statsPanels(snap);
     this._roomBar(snap);
+    this._edgeIndicators(snap);
     this._pauseOverlay();
     this._feedPanel(dt);
     this._killPanel(dt);
@@ -870,6 +871,52 @@
     const m = Math.floor(sec / 60), s = sec % 60;
     return m + ':' + (s < 10 ? '0' : '') + s;
   };
+
+  Render.worldToScreen = function (x, y) {
+    const c = this.camera;
+    return { x: (x - c.x) * c.scale + this.w / 2, y: (y - c.y) * c.scale + this.h / 2 };
+  };
+  Render._edgeIndicators = function (snap) {
+    if (!G.settings.edgeIndicators || !snap || !snap.me || this.w < 520) return;
+    const ctx = this.ctx, pad = this.w < 760 ? 28 : 38;
+    const cx = this.w / 2, cy = this.h / 2;
+    const items = [];
+    const myMass = snap.me.mass || 0;
+    const push = (x, y, label, color, prio) => {
+      const p = this.worldToScreen(x, y);
+      if (p.x >= 0 && p.x <= this.w && p.y >= 0 && p.y <= this.h) return;
+      const dx = p.x - cx, dy = p.y - cy, adx = Math.abs(dx) || 0.001, ady = Math.abs(dy) || 0.001;
+      const k = Math.min((cx - pad) / adx, (cy - pad) / ady);
+      items.push({ x: cx + dx * k, y: cy + dy * k, a: Math.atan2(dy, dx), label, color, prio, dist: Math.hypot(dx, dy) });
+    };
+    for (const c of snap.cells || []) {
+      if (c.isMe || !c.mass) continue;
+      const dangerous = c.mass >= myMass * (CFG.eatRatio || 1.25);
+      const eatable = myMass >= c.mass * (CFG.eatRatio || 1.25);
+      const splitEatable = (myMass / 2) >= c.mass * (CFG.splitEatRatio || CFG.eatRatio || 1.25);
+      if (dangerous) push(c.x, c.y, '\u5371', 'rgba(255,80,105,0.96)', 3);
+      else if (splitEatable) push(c.x, c.y, '\u5206', 'rgba(255,210,80,0.94)', 2);
+      else if (eatable && c.mass > myMass * 0.18) push(c.x, c.y, '\u5403', 'rgba(124,255,176,0.92)', 1);
+    }
+    if (G.settings.signalMarker && this._signals) for (const s of this._signals) push(s.x, s.y, 'G', s.color || 'rgba(124,255,176,0.95)', 4);
+    items.sort((a, b) => b.prio - a.prio || a.dist - b.dist);
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    for (const it of items.slice(0, this.w < 760 ? 5 : 8)) {
+      ctx.save();
+      ctx.translate(it.x, it.y); ctx.rotate(it.a);
+      ctx.fillStyle = it.color; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(-9, -10); ctx.lineTo(-5, 0); ctx.lineTo(-9, 10); ctx.closePath();
+      ctx.stroke(); ctx.fill();
+      ctx.restore();
+      ctx.font = '900 ' + (this.w < 760 ? 10 : 12) + 'px "Microsoft YaHei", sans-serif';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.65)'; ctx.fillStyle = it.color;
+      ctx.strokeText(it.label, it.x, it.y + (this.w < 760 ? 17 : 21));
+      ctx.fillText(it.label, it.x, it.y + (this.w < 760 ? 17 : 21));
+    }
+    ctx.restore();
+  };
+
   Render._roomBar = function (snap) {
     if (!snap || !snap.me || this.w < 760) return;
     const ctx = this.ctx, st = snap.stats || {}, me = snap.me;

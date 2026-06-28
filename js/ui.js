@@ -196,6 +196,7 @@
     const deathMenu = document.getElementById('set-death-menu');
     const showChat = document.getElementById('set-show-chat');
     const signalMarker = document.getElementById('set-signal-marker');
+    const edgeIndicators = document.getElementById('set-edge-indicators');
     const adminKey = document.getElementById('set-admin-key');
     const adminLogin = document.getElementById('set-admin-login');
     sound.checked = G.settings.sound; names.checked = G.settings.names;
@@ -221,6 +222,7 @@
     bindBool(deathMenu, 'deathMenu');
     bindBool(showChat, 'showChat');
     bindBool(signalMarker, 'signalMarker');
+    bindBool(edgeIndicators, 'edgeIndicators');
     const unlockAdmin = () => {
       const key = adminKey ? adminKey.value.trim() : '';
       if (!key) return;
