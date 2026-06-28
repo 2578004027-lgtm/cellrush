@@ -48,7 +48,7 @@ G.CFG = {
   ejectMax: 900,             // hard cap for persistent pellets
 
   // passive mass decay (big cells slowly shrink)
-  decayRate: 0.0016,         // fraction of mass lost per second
+  decayRate: 0.0016,         // bot/passive mass loss; human players are exempt in world.js
   decayMin: 200,             // only cells above this decay
 
   // viruses

@@ -278,7 +278,7 @@
         p._poisonBomb = null;
       }
       for (const c of p.cells) {
-        if (!p.admin && c.mass > CFG.decayMin) c.mass -= c.mass * CFG.decayRate * dt;
+        if (!p.admin && p.isBot && c.mass > CFG.decayMin) c.mass -= c.mass * CFG.decayRate * dt;
         tot += c.mass;
       }
       if (tot > p.maxMass) p.maxMass = tot;
