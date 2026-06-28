@@ -539,8 +539,11 @@
 
     const me = w.players.get(playerId);
     if (me && me.spectator) {
-      const lead = w._leaderPlayerInfo();
-      out.me = { x: lead ? lead.x : w.size / 2, y: lead ? lead.y : w.size / 2, mass: lead ? lead.mass : CFG.startMass, maxMass: lead ? lead.mass : 0, cells: 0, admin: false, spectator: true, account: '', diamonds: 0, skills: [], specials: [] };
+      const lead = me._spectateView || w._leaderPlayerInfo();
+      const targetName = lead ? (lead.name || (lead.p && lead.p.name) || '') : '';
+      const targetRank = lead ? (lead.rank || 1) : 0;
+      const targetCells = lead ? (lead.cells || (lead.p && lead.p.cells && lead.p.cells.length) || 0) : 0;
+      out.me = { x: lead ? lead.x : w.size / 2, y: lead ? lead.y : w.size / 2, mass: lead ? lead.mass : CFG.startMass, maxMass: lead ? lead.mass : 0, cells: 0, admin: false, spectator: true, account: '', diamonds: 0, skills: [], specials: [], targetName, targetRank, targetCells };
     } else if (me && me.alive && me.cells.length) {
       let cx = 0, cy = 0, tm = 0;
       for (const c of me.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }

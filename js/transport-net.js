@@ -85,7 +85,7 @@
     this._snapIntervals = [];
     this._snapSeq = 0;
     this._lastEventSeq = 0;
-    this._pending = { split: 0, eject: 0, skill: null, signal: false };
+    this._pending = { split: 0, eject: 0, skill: null, signal: false, spectateDir: 0 };
     this._aim = { tx: 0, ty: 0 };
     this._lastSend = 0;
     this._adminWant = false;
@@ -181,6 +181,7 @@
     if (input.eject || input.ejectCount) this._pending.eject = Math.max(this._pending.eject || 0, input.ejectCount || 1);
     if (input.skill) this._pending.skill = input.skill;
     if (input.signal) this._pending.signal = true;
+    if (input.spectateDir) this._pending.spectateDir = input.spectateDir > 0 ? 1 : -1;
     this._aim.tx = input.tx; this._aim.ty = input.ty;
 
     const now = (performance && performance.now) ? performance.now() : 0;
@@ -189,10 +190,10 @@
     this.ws.send(JSON.stringify({
       t: 'input', tx: this._aim.tx, ty: this._aim.ty,
       split: (this._pending.split || 0) > 0, splitCount: this._pending.split || 0, eject: (this._pending.eject || 0) > 0, ejectCount: this._pending.eject || 0, skill: this._pending.skill,
-      signal: !!this._pending.signal,
+      signal: !!this._pending.signal, spectateDir: this._pending.spectateDir || 0,
       adminGrow: input.adminGrow, adminShrink: input.adminShrink,
     }));
-    this._pending = { split: 0, eject: 0, skill: null, signal: false };
+    this._pending = { split: 0, eject: 0, skill: null, signal: false, spectateDir: 0 };
   };
 
   NetTransport.prototype._consumeEvents = function (out, source) {

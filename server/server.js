@@ -212,6 +212,7 @@ function makeClient(id) {
     forceFull: { food: true, viruses: true, ejected: true },
     lastChatAt: 0,
     lastSignalAt: 0,
+    lastSpectateAt: 0,
   };
 }
 function changed(prev, obj, fields) {
@@ -276,7 +277,7 @@ wss.on('connection', (ws) => {
     const p = world.players.get(id); if (!p) return;
     if (m.t === 'join') {
       p.name = (typeof m.name === 'string' ? m.name : 'Player').slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin);
-      if (m.spectate) { p.spectator = true; p.alive = false; p.cells = []; systemChat(p.name + ' \u5f00\u59cb\u89c2\u6218'); }
+      if (m.spectate) { p.spectator = true; p.alive = false; p.cells = []; p.spectateIndex = 0; systemChat(p.name + ' \u5f00\u59cb\u89c2\u6218'); }
       else { p.spectator = false; if (!p.alive || !p.cells.length) world.spawnPlayer(p); loginAccount(p, ws, m.account, m.password); systemChat(p.name + ' \u52a0\u5165\u4e86\u6e38\u620f'); }
     }
     else if (m.t === 'input') {
@@ -290,9 +291,16 @@ wss.on('connection', (ws) => {
           for (const qws of clients.keys()) if (qws.readyState === 1) qws.send(payload);
         }
       }
+      if (p.spectator && m.spectateDir) {
+        const nowSpectate = Date.now();
+        if (nowSpectate - (client.lastSpectateAt || 0) > 120) {
+          client.lastSpectateAt = nowSpectate;
+          p.spectateIndex = (p.spectateIndex || 0) + (Number(m.spectateDir) > 0 ? 1 : -1);
+        }
+      }
       world.applyInput(id, m);
     }
-    else if (m.t === 'respawn') { if (m.name) p.name = ('' + m.name).slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin); p.spectator = false; world.spawnPlayer(p); client.deadNotified = false; }
+    else if (m.t === 'respawn') { if (m.name) p.name = ('' + m.name).slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin); p.spectator = false; p.spectateIndex = 0; world.spawnPlayer(p); client.deadNotified = false; }
     else if (m.t === 'adminAuth') {
       const ok = !!(ADMIN_KEY && typeof m.key === 'string' && m.key === ADMIN_KEY);
       p.admin = ok;
@@ -358,20 +366,30 @@ setInterval(() => {
   }
 }, 1000 / 30);
 
-function leaderViewInfo() {
-  let best = null;
+function rankedViewInfos() {
+  const out = [];
   for (const q of world.players.values()) {
     if (!q.alive || q.spectator) continue;
     let cx = 0, cy = 0, tm = 0;
     for (const c of q.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
-    if (tm > 0 && (!best || tm > best.mass)) best = { x: cx / tm, y: cy / tm, mass: tm };
+    if (tm > 0) out.push({ p: q, x: cx / tm, y: cy / tm, mass: tm, cells: q.cells.length, name: q.name || 'Player' });
   }
-  return best;
+  out.sort((a, b) => b.mass - a.mass);
+  out.forEach((v, i) => { v.rank = i + 1; });
+  return out;
 }
+function leaderViewInfo() { return rankedViewInfos()[0] || null; }
 function viewFor(p) {
   let cx = world.size / 2, cy = world.size / 2, mass = CFG.startMass;
   if (p && p.spectator) {
-    const lead = leaderViewInfo(); if (lead) { cx = lead.x; cy = lead.y; mass = lead.mass; }
+    const ranked = rankedViewInfos();
+    if (ranked.length) {
+      const idx = ((p.spectateIndex || 0) % ranked.length + ranked.length) % ranked.length;
+      p.spectateIndex = idx;
+      const lead = ranked[idx];
+      p._spectateView = lead;
+      cx = lead.x; cy = lead.y; mass = lead.mass;
+    } else p._spectateView = null;
   } else if (p && p.alive && p.cells.length) {
     let tm = 0; cx = 0; cy = 0;
     for (const c of p.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }

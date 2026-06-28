@@ -3,7 +3,7 @@
   const Input = {
     mouseX: window.innerWidth / 2, mouseY: window.innerHeight / 2,
     _split: 0, _eject: 0, _skill: null, _signal: false, _adminGrow: false, _adminShrink: false,
-    _ejectHeld: false, _lastMacroEject: 0, _pauseToggle: false, _lockMove: false, _lockedAim: null, _showScoreboard: false,
+    _ejectHeld: false, _lastMacroEject: 0, _pauseToggle: false, _lockMove: false, _lockedAim: null, _showScoreboard: false, _spectateDir: 0,
     _stick: { active: false, id: null, x: 0, y: 0, dx: 0, dy: 0 },
     _stickEl: null, _knobEl: null,
   };
@@ -101,9 +101,13 @@
 
       if (e.code === 'Space') { Input._split = Math.max(Input._split, e.ctrlKey || e.altKey ? 4 : (e.shiftKey ? 2 : 1)); e.preventDefault(); return; }
       if (e.key === 'Tab') { Input._showScoreboard = true; e.preventDefault(); return; }
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') { Input._spectateDir = 1; e.preventDefault(); return; }
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') { Input._spectateDir = -1; e.preventDefault(); return; }
       const k = e.key.toLowerCase();
       if (k === 'w') { Input._eject = Math.max(Input._eject, 1); Input._ejectHeld = true; return; }
       if (k === 'g') { Input._signal = true; e.preventDefault(); return; }
+      if (k === 'n') { Input._spectateDir = 1; e.preventDefault(); return; }
+      if (k === 'b') { Input._spectateDir = -1; e.preventDefault(); return; }
       if (k === 's') { Input._pauseToggle = true; e.preventDefault(); return; }
       if (k === 'l') { Input._lockMove = !Input._lockMove; Input._lockedAim = null; e.preventDefault(); return; }
       if (SKILL_KEYS[k]) { Input._skill = SKILL_KEYS[k]; return; }
@@ -130,9 +134,9 @@
       split: Input._split, splitCount: Input._split, eject: Input._eject > 0, ejectCount: Input._eject, skill: Input._skill,
       signal: Input._signal,
       adminGrow: Input._adminGrow, adminShrink: Input._adminShrink,
-      pauseToggle: Input._pauseToggle, lockMove: Input._lockMove,
+      pauseToggle: Input._pauseToggle, lockMove: Input._lockMove, spectateDir: Input._spectateDir,
     };
-    Input._split = 0; Input._eject = 0; Input._skill = null; Input._signal = false; Input._pauseToggle = false;
+    Input._split = 0; Input._eject = 0; Input._skill = null; Input._signal = false; Input._pauseToggle = false; Input._spectateDir = 0;
     Input._adminGrow = false; Input._adminShrink = false;
     return inp;
   };

@@ -872,7 +872,9 @@
       const score = this._fmtMass(snap.me.maxMass || snap.me.mass || 0);
       const mass = this._fmtMass(snap.me.mass || 0);
       const lock = (G.Input && G.Input._lockMove) ? '     \u9501\u5b9a' : '';
-      const text = snap.me.spectator ? ('\u89c2\u6218\u4e2d     TOP ' + mass) : ('\u5206\u6570 ' + score + '     \u8d28\u91cf ' + mass + '     ' + cells + '/16' + lock);
+      const specName = snap.me.spectator ? (snap.me.targetName || '\u7b2c\u4e00\u540d') : '';
+      const specRank = snap.me.spectator && snap.me.targetRank ? ('#' + snap.me.targetRank + ' ') : '';
+      const text = snap.me.spectator ? ('\u89c2\u6218\u4e2d     ' + specRank + specName + '     ' + mass + '     \u2190/\u2192 \u5207\u6362') : ('\u5206\u6570 ' + score + '     \u8d28\u91cf ' + mass + '     ' + cells + '/16' + lock);
       ctx.font = (mobile ? '600 12px ' : '600 16px ') + '"Microsoft YaHei", sans-serif';
       const w = Math.min(this.w - 22, Math.max(mobile ? 210 : 310, ctx.measureText(text).width + 28));
       const h = mobile ? 22 : 25, x = (this.w - w) / 2, y = this.h - h - (mobile ? 62 : 0);
