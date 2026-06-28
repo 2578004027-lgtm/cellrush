@@ -445,8 +445,9 @@ function viewFor(p) {
     for (const c of p.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
     cx /= tm; cy /= tm; mass = tm;
   }
-  const half = (api.radius(mass) + CFG.view.base) * 2.4;
-  return { x0: cx - half * 1.4, x1: cx + half * 1.4, y0: cy - half, y1: cy + half };
+  // Oversend enough for the closest Agar-style camera so food/cells never pop at edges.
+  const half = Math.max(1250, (api.radius(mass) + CFG.view.base) * 2.15);
+  return { x0: cx - half * 1.45, x1: cx + half * 1.45, y0: cy - half * 1.08, y1: cy + half * 1.08 };
 }
 setInterval(() => {
   const snapStart = msNow();

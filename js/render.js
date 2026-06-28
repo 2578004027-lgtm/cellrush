@@ -96,12 +96,15 @@
         cam.y += (targetY - cam.y) * follow;
       } else { cam.x = targetX; cam.y = targetY; }
       const mass = snap.me.mass || CFG.startMass;
-      const base = classic ? 720 : CFG.view.base;
-      const margin = classic ? 1.02 : CFG.view.margin;
-      const minZ = classic ? 0.20 : CFG.view.min;
-      const maxZ = classic ? 1.18 : CFG.view.max;
-      const want = U.clamp((this.h / 2) / (margin * (G.radius(mass) + base)), minZ, maxZ);
-      cam.scale += (want - cam.scale) * (dt ? 1 - Math.exp(-(classic ? 4.2 : 6) * dt) : 1);
+      let want;
+      if (classic) {
+        // Agar.io-like camera: close at spawn, then slowly zooms out by cell radius.
+        const r = G.radius(mass);
+        want = U.clamp(Math.pow(Math.min(1, 70 / (r + 20)), 0.34) * 0.94, 0.24, 1.04);
+      } else {
+        want = U.clamp((this.h / 2) / (CFG.view.margin * (G.radius(mass) + CFG.view.base)), CFG.view.min, CFG.view.max);
+      }
+      cam.scale += (want - cam.scale) * (dt ? 1 - Math.exp(-(classic ? 3.2 : 6) * dt) : 1);
     }
   };
 
@@ -210,7 +213,7 @@
     for (const f of snap.food) {
       if (f.x < cb.x0 || f.x > cb.x1 || f.y < cb.y0 || f.y > cb.y1) continue;
       const classicFood = (G.settings.mapTheme || 'classic') === 'classic';
-      const s = classicFood ? Math.max(5 / cam.scale, f.r * 2.35) : Math.max(3 / cam.scale, f.r * 1.55);
+      const s = classicFood ? Math.max(8.8 / cam.scale, f.r * 1.85) : Math.max(3 / cam.scale, f.r * 1.55);
       ctx.save();
       ctx.globalAlpha = 0.96;
       ctx.fillStyle = f.color;
