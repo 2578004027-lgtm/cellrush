@@ -533,9 +533,9 @@
     }
 
     const named = [];
-    for (const p of w.players.values()) { if (!p.alive || p.spectator) continue; let m = 0; for (const c of p.cells) m += c.mass; named.push({ name: p.name, mass: m, isMe: p.id === playerId }); }
+    for (const p of w.players.values()) { if (!p.alive || p.spectator) continue; let m = 0; for (const c of p.cells) m += c.mass; named.push({ name: p.name, mass: m, cells: p.cells.length, bot: !!p.isBot, isMe: p.id === playerId }); }
     named.sort((a, b) => b.mass - a.mass);
-    out.leaderboard = named.slice(0, 10);
+    out.leaderboard = named.slice(0, 24);
 
     const me = w.players.get(playerId);
     if (me && me.spectator) {

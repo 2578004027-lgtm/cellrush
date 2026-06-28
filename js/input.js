@@ -3,7 +3,7 @@
   const Input = {
     mouseX: window.innerWidth / 2, mouseY: window.innerHeight / 2,
     _split: 0, _eject: 0, _skill: null, _signal: false, _adminGrow: false, _adminShrink: false,
-    _ejectHeld: false, _lastMacroEject: 0, _pauseToggle: false, _lockMove: false, _lockedAim: null,
+    _ejectHeld: false, _lastMacroEject: 0, _pauseToggle: false, _lockMove: false, _lockedAim: null, _showScoreboard: false,
     _stick: { active: false, id: null, x: 0, y: 0, dx: 0, dy: 0 },
     _stickEl: null, _knobEl: null,
   };
@@ -100,6 +100,7 @@
       if (isTextInput()) return;
 
       if (e.code === 'Space') { Input._split = Math.max(Input._split, e.ctrlKey || e.altKey ? 4 : (e.shiftKey ? 2 : 1)); e.preventDefault(); return; }
+      if (e.key === 'Tab') { Input._showScoreboard = true; e.preventDefault(); return; }
       const k = e.key.toLowerCase();
       if (k === 'w') { Input._eject = Math.max(Input._eject, 1); Input._ejectHeld = true; return; }
       if (k === 'g') { Input._signal = true; e.preventDefault(); return; }
@@ -111,7 +112,9 @@
     });
     window.addEventListener('keyup', (e) => {
       if ((e.key || '').toLowerCase() === 'w') Input._ejectHeld = false;
+      if (e.key === 'Tab') { Input._showScoreboard = false; e.preventDefault(); }
     });
+    window.addEventListener('blur', () => { Input._showScoreboard = false; Input._ejectHeld = false; });
   };
 
   Input.sample = function (camera) {
