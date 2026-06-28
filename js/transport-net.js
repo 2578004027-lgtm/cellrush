@@ -173,6 +173,8 @@
       if (this.opts.onChat) this.opts.onChat(m);
     } else if (m.t === 'signal') {
       if (this.opts.onSignal) this.opts.onSignal(m);
+    } else if (m.t === 'kill') {
+      if (this.opts.onKill) this.opts.onKill(m);
     }
   };
   NetTransport.prototype.update = function (dt, input) {

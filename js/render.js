@@ -12,6 +12,7 @@
     _fx: [],                // transient visual effects (split/merge/pop rings)
     _signals: [],           // short-lived map pings from G key
     _feed: [],              // short combat/event messages
+    _kills: [],             // cwal-style kill notices
     _squeeze: new Map(),
     _skins: new Map(),      // url -> HTMLImageElement cache for cell skins
 };
@@ -213,6 +214,7 @@
     this._roomBar(snap);
     this._pauseOverlay();
     this._feedPanel(dt);
+    this._killPanel(dt);
   };
 
   Render._splitReach = function (mass) {
@@ -961,6 +963,44 @@
     ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.stroke();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
     ctx.fillText(text, this.w / 2, y + h / 2 + 1);
+    ctx.restore();
+  };
+
+
+  Render.addKill = function (m) {
+    if (!m) return;
+    const killer = (m.killer || '').slice(0, 14);
+    const victim = (m.victim || 'Player').slice(0, 14);
+    const text = killer ? (killer + ' \u5403\u6389\u4e86 ' + victim) : (victim + ' \u88ab\u5403\u6389\u4e86');
+    this._kills.push({ text, killer, victim, age: 0, ttl: 3.8 });
+    if (this._kills.length > 5) this._kills.splice(0, this._kills.length - 5);
+  };
+  Render._killPanel = function (dt) {
+    if (!this._kills.length) return;
+    for (const k of this._kills) k.age += dt;
+    this._kills = this._kills.filter((k) => k.age < k.ttl);
+    if (!this._kills.length) return;
+    const ctx = this.ctx, mobile = this.w < 760;
+    const rows = this._kills.slice(mobile ? -2 : -4);
+    const rowH = mobile ? 23 : 28;
+    const w = mobile ? Math.min(this.w - 20, 280) : 360;
+    const h = rows.length * rowH + 12;
+    const x = (this.w - w) / 2;
+    const y = mobile ? 42 : 42;
+    ctx.save();
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    rows.forEach((k, i) => {
+      const a = Math.max(0, Math.min(1, 1 - Math.max(0, k.age - (k.ttl - 0.75)) / 0.75));
+      const yy = y + i * rowH;
+      ctx.globalAlpha = a;
+      const g = ctx.createLinearGradient(x, yy, x + w, yy);
+      g.addColorStop(0, 'rgba(255,80,105,0.08)'); g.addColorStop(0.45, 'rgba(37,37,37,0.58)'); g.addColorStop(1, 'rgba(255,210,80,0.08)');
+      ctx.fillStyle = g; this._round(ctx, x, yy, w, rowH - 4, 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.stroke();
+      ctx.fillStyle = k.killer ? '#ffd250' : 'rgba(255,255,255,0.78)';
+      ctx.font = (mobile ? '800 12px ' : '800 14px ') + '"Microsoft YaHei", sans-serif';
+      ctx.fillText(k.text, x + w / 2, yy + rowH / 2 - 2);
+    });
     ctx.restore();
   };
 

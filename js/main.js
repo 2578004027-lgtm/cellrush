@@ -15,6 +15,7 @@
       onAdminTune: (m) => G.UI.setAdminTuning(m),
       onChat: (m) => G.UI.addChat(m),
       onSignal: (m) => { G.Render.addSignal(m); G.UI.addChat({ system: true, text: (m.name || 'Player') + ' \u6807\u8bb0\u4e86\u5730\u56fe\u4f4d\u7f6e' }); },
+      onKill: (m) => G.Render.addKill(m),
       onDead: (m) => { playing = false; G.UI.showDeath({ maxMass: m.maxMass, kills: m.kills || 0, killedBy: m.killedBy || '', diamondsEarned: m.diamondsEarned || 0, diamonds: m.diamonds || 0 }, m.survived || 0); },
       onClose: () => { if (playing) { playing = false; G.UI.showError('\\u8fde\\u63a5\\u5df2\\u65ad\\u5f00\\u3002'); } },
       onError: () => { playing = false; G.UI.showError('\\u8fde\\u63a5\\u4e0d\\u4e0a\\u670d\\u52a1\\u5668\\uff0c\\u8bf7\\u5148\\u542f\\u52a8\\u672c\\u5730\\u670d\\u52a1\\u3002'); },

@@ -195,6 +195,10 @@ function broadcastChat(msg) {
   for (const ws of clients.keys()) if (ws.readyState === 1) ws.send(payload);
 }
 function systemChat(text) { broadcastChat({ system: true, text }); }
+function broadcastKill(msg) {
+  const payload = JSON.stringify({ t: 'kill', killer: msg.killer || '', victim: msg.victim || '', kills: msg.kills || 0, maxMass: msg.maxMass || 0, at: Date.now() });
+  for (const ws of clients.keys()) if (ws.readyState === 1) ws.send(payload);
+}
 
 function applyColor(p, c) { if (c && typeof c.h === 'number') p.color = api.util.colorFromHue(c.h); }
 function applySkin(p, skin) {
@@ -361,7 +365,8 @@ setInterval(() => {
       const reward = Math.min(35, Math.max(1, Math.floor((p.maxMass || 0) / 120) + Math.floor(survived / 60)));
       const earned = awardDiamonds(p, reward);
       if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'dead', maxMass: p.maxMass, survived, kills: p.kills || 0, killedBy: p.killedBy || '', diamondsEarned: earned, diamonds: p.diamonds || 0 }));
-      systemChat((p.name || 'Player') + ' \u88ab\u5403\u6389\u4e86');
+      broadcastKill({ killer: p.killedBy || '', victim: p.name || 'Player', kills: p.kills || 0, maxMass: p.maxMass || 0 });
+      systemChat(p.killedBy ? ((p.killedBy || 'Player') + ' \u5403\u6389\u4e86 ' + (p.name || 'Player')) : ((p.name || 'Player') + ' \u88ab\u5403\u6389\u4e86'));
     }
   }
 }, 1000 / 30);
