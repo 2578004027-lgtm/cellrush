@@ -35,6 +35,28 @@
     return best ? { obj: best, d2: bd } : null;
   }
 
+  function splitReach(mass) {
+    const r = G.radius(mass / 2);
+    const launch = U.clamp(
+      Math.max(CFG.splitImpulse, r * (CFG.splitLaunchRadii || 1.15) * CFG.frictionPerSec),
+      CFG.splitImpulse,
+      CFG.splitImpulseMax || 2400
+    );
+    const sep = r * (CFG.splitStartSeparation || 2.03);
+    return sep + launch / Math.max(1, CFG.frictionPerSec) * 0.82;
+  }
+
+  function virusOnLine(world, from, to) {
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const len2 = dx * dx + dy * dy || 1;
+    for (const v of world.viruses) {
+      const t = Math.max(0, Math.min(1, ((v.x - from.x) * dx + (v.y - from.y) * dy) / len2));
+      const px = from.x + dx * t, py = from.y + dy * t;
+      if (U.dist(px, py, v.x, v.y) < G.radius(v.mass) + 42) return true;
+    }
+    return false;
+  }
+
   G.Bots = {
     name() { return NAMES[(ni++) % NAMES.length] + (Math.random() < 0.35 ? U.randInt(1, 99) : ''); },
 
@@ -70,11 +92,21 @@
         return { tx: ai.tx, ty: ai.ty, split: false, eject: false };
       }
 
-      let target = null;
+      let target = null, wantSplit = false;
       if (prey && pd < 520) {
         target = prey;
         ai.foodId = null;
         ai.until = now + 0.45;
+        const biggest = bot.cells.reduce((a, b) => (a.mass > b.mass ? a : b), bot.cells[0]);
+        const halfMass = biggest.mass / 2;
+        const canSplitEat = biggest.mass >= CFG.splitMin && halfMass >= prey.mass * (CFG.splitEatRatio || CFG.eatRatio || 1.2);
+        const reach = splitReach(biggest.mass) + G.radius(prey.mass) * 0.35;
+        const safeThreat = !threat || td > reach + G.radius(threat.mass) + 80;
+        if (canSplitEat && bot.cells.length < CFG.maxCells && pd > G.radius(biggest.mass) * 0.75 && pd < reach && safeThreat && !virusOnLine(world, biggest, prey) && now >= (ai.splitUntil || 0)) {
+          wantSplit = true;
+          ai.splitUntil = now + 3.2 + Math.random() * 1.6;
+          ai.until = now + 0.2;
+        }
       } else {
         let food = byId(world.food, ai.foodId);
         if (!food || U.dist(c.x, c.y, food.x, food.y) < 38 || now >= (ai.foodUntil || 0)) {
@@ -109,7 +141,7 @@
       const aim = farAim(c, target, 850);
       ai.tx = U.clamp(aim.x, 0, world.size);
       ai.ty = U.clamp(aim.y, 0, world.size);
-      return { tx: ai.tx, ty: ai.ty, split: false, eject: false };
+      return { tx: ai.tx, ty: ai.ty, split: wantSplit, splitCount: wantSplit ? 1 : 0, eject: false };
     },
   };
 })(window.G);
