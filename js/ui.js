@@ -19,6 +19,7 @@
     this.profilesEl = document.getElementById('profiles');
     this.preview = document.getElementById('avatar-preview');
     this.playBtn = document.getElementById('play');
+    this.spectateBtn = document.getElementById('spectate');
     this.respawnBtn = document.getElementById('respawn');
     this.deathStats = document.getElementById('death-stats');
     this.selectedHue = U.pick(CFG.hues);
@@ -163,6 +164,7 @@
       fn(name, color, skin, account, password);
     };
     this.playBtn.addEventListener('click', () => go(this.cbs.onPlay));
+    if (this.spectateBtn) this.spectateBtn.addEventListener('click', () => go(this.cbs.onSpectate || this.cbs.onPlay));
     this.nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(this.cbs.onPlay); });
     this.skinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(this.cbs.onPlay); });
     if (this.accountInput) this.accountInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(this.cbs.onPlay); });

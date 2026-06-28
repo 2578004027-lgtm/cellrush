@@ -94,7 +94,7 @@
       this.ws = new WebSocket(serverUrl());
     } catch (e) { if (opts.onError) opts.onError(); return; }
     this.ws.onopen = () => {
-      this.ws.send(JSON.stringify({ t: 'join', name: opts.name, color: { h: opts.color.h }, skin: opts.skin || '', account: opts.account || '', password: opts.password || '' }));
+      this.ws.send(JSON.stringify({ t: 'join', name: opts.name, color: { h: opts.color.h }, skin: opts.skin || '', account: opts.account || '', password: opts.password || '', spectate: !!opts.spectate }));
 
     };
     this.ws.onmessage = (e) => { try { this._recv(JSON.parse(e.data)); } catch (err) { /* ignore malformed packets */ } };

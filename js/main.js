@@ -3,13 +3,13 @@
   let transport = null, last = 0, playing = false, paused = false, camInit = false;
   let frames = 0, fpsAcc = 0;
 
-  function startGame(name, color, skin, account, password) {
+  function startGame(name, color, skin, account, password, spectate) {
     if (transport) transport.close();
     G.Render._lerp.clear();
     camInit = false; playing = true; paused = false;
     G.Audio.resume();
     transport = new G.NetTransport({
-      name, color, skin, account, password,
+      name, color, skin, account, password, spectate: !!spectate,
       onWelcome: () => {},
       onAccount: (m) => G.UI.setAccount(m),
       onAdminTune: (m) => G.UI.setAdminTuning(m),
@@ -51,6 +51,7 @@
     G.Input.init();
     G.UI.init({
       onPlay: startGame,
+      onSpectate: (name, color, skin, account, password) => startGame(name, color, skin, account, password, true),
       onRespawn: respawn,
       onPause: (v) => { paused = v; },
       onAdminKey: (key) => { if (transport) transport.adminLogin(key); },

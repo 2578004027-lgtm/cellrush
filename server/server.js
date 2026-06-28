@@ -263,9 +263,13 @@ wss.on('connection', (ws) => {
   ws.on('message', (raw) => {
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     const p = world.players.get(id); if (!p) return;
-    if (m.t === 'join') { p.name = (typeof m.name === 'string' ? m.name : 'Player').slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin); loginAccount(p, ws, m.account, m.password); }
+    if (m.t === 'join') {
+      p.name = (typeof m.name === 'string' ? m.name : 'Player').slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin);
+      if (m.spectate) { p.spectator = true; p.alive = false; p.cells = []; }
+      else { p.spectator = false; if (!p.alive || !p.cells.length) world.spawnPlayer(p); loginAccount(p, ws, m.account, m.password); }
+    }
     else if (m.t === 'input') { world.applyInput(id, m); }
-    else if (m.t === 'respawn') { if (m.name) p.name = ('' + m.name).slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin); world.spawnPlayer(p); client.deadNotified = false; }
+    else if (m.t === 'respawn') { if (m.name) p.name = ('' + m.name).slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin); p.spectator = false; world.spawnPlayer(p); client.deadNotified = false; }
     else if (m.t === 'adminAuth') {
       const ok = !!(ADMIN_KEY && typeof m.key === 'string' && m.key === ADMIN_KEY);
       p.admin = ok;
@@ -316,7 +320,7 @@ setInterval(() => {
   notePerf('sim', msNow() - simStart);
   for (const [ws, c] of clients) {
     const p = world.players.get(c.id);
-    if (p && !p.alive && !c.deadNotified) {
+    if (p && !p.spectator && !p.alive && !c.deadNotified) {
       c.deadNotified = true;
       const survived = world.time - p.bornAt;
       const reward = Math.min(35, Math.max(1, Math.floor((p.maxMass || 0) / 120) + Math.floor(survived / 60)));
@@ -326,9 +330,21 @@ setInterval(() => {
   }
 }, 1000 / 30);
 
+function leaderViewInfo() {
+  let best = null;
+  for (const q of world.players.values()) {
+    if (!q.alive || q.spectator) continue;
+    let cx = 0, cy = 0, tm = 0;
+    for (const c of q.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
+    if (tm > 0 && (!best || tm > best.mass)) best = { x: cx / tm, y: cy / tm, mass: tm };
+  }
+  return best;
+}
 function viewFor(p) {
   let cx = world.size / 2, cy = world.size / 2, mass = CFG.startMass;
-  if (p && p.alive && p.cells.length) {
+  if (p && p.spectator) {
+    const lead = leaderViewInfo(); if (lead) { cx = lead.x; cy = lead.y; mass = lead.mass; }
+  } else if (p && p.alive && p.cells.length) {
     let tm = 0; cx = 0; cy = 0;
     for (const c of p.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
     cx /= tm; cy /= tm; mass = tm;

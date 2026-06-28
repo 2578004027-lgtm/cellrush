@@ -337,6 +337,17 @@
     return out;
   };
 
+  World.prototype._leaderPlayerInfo = function () {
+    let best = null;
+    for (const p of this.players.values()) {
+      if (!p.alive || p.spectator) continue;
+      let cx = 0, cy = 0, tm = 0;
+      for (const c of p.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
+      if (tm > 0 && (!best || tm > best.mass)) best = { p, x: cx / tm, y: cy / tm, mass: tm };
+    }
+    return best;
+  };
+
   World.prototype._resolveEats = function () {
     const cells = this._allCells();
     const H = this.hash;
@@ -520,15 +531,18 @@
     }
 
     const named = [];
-    for (const p of w.players.values()) { if (!p.alive) continue; let m = 0; for (const c of p.cells) m += c.mass; named.push({ name: p.name, mass: m, isMe: p.id === playerId }); }
+    for (const p of w.players.values()) { if (!p.alive || p.spectator) continue; let m = 0; for (const c of p.cells) m += c.mass; named.push({ name: p.name, mass: m, isMe: p.id === playerId }); }
     named.sort((a, b) => b.mass - a.mass);
     out.leaderboard = named.slice(0, 10);
 
     const me = w.players.get(playerId);
-    if (me && me.alive && me.cells.length) {
+    if (me && me.spectator) {
+      const lead = w._leaderPlayerInfo();
+      out.me = { x: lead ? lead.x : w.size / 2, y: lead ? lead.y : w.size / 2, mass: lead ? lead.mass : CFG.startMass, maxMass: lead ? lead.mass : 0, cells: 0, admin: false, spectator: true, account: '', diamonds: 0, skills: [], specials: [] };
+    } else if (me && me.alive && me.cells.length) {
       let cx = 0, cy = 0, tm = 0;
       for (const c of me.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
-      out.me = { x: cx / tm, y: cy / tm, mass: tm, maxMass: me.maxMass, cells: me.cells.length, admin: me.admin,
+      out.me = { x: cx / tm, y: cy / tm, mass: tm, maxMass: me.maxMass, cells: me.cells.length, admin: me.admin, spectator: false,
         account: me.account || '', diamonds: me.diamonds || 99999 };
       out.me.skills = CFG.skillOrder.map((k) => {
         const def = CFG.skills[k];

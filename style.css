@@ -89,7 +89,8 @@ html, body {
 .profile-save { background: rgba(255,144,0,0.34); }
 .account-input { top: 322px; }
 .password-input { top: 360px; }
-.play-button { position: absolute; left: 20px; right: 20px; top: 404px; background: linear-gradient(180deg, #1d9df7, #0874c4); border-color: #0b6db7; font-size: 17px; box-shadow: 0 8px 22px rgba(22,141,232,0.22); }
+.play-button { position: absolute; left: 20px; right: 92px; top: 404px; background: linear-gradient(180deg, #1d9df7, #0874c4); border-color: #0b6db7; font-size: 17px; box-shadow: 0 8px 22px rgba(22,141,232,0.22); }
+.spectate-button { position: absolute; right: 20px; top: 404px; width: 66px; background: linear-gradient(180deg, #3c3c3c, #242424); border-color: rgba(255,255,255,0.12); font-size: 15px; }
 .help { position: absolute; left: 18px; right: 18px; top: 452px; color: var(--muted); font-size: 12px; line-height: 1.7; text-align: center; }
 .help b { color: rgba(255,255,255,0.9); font-weight: 600; }
 .neterr { position: absolute; left: 20px; right: 20px; top: 444px; color: #ff8aa0; font-size: 13px; line-height: 1.45; text-align: center; }
@@ -208,7 +209,8 @@ html, body {
   .profiles { left: 18px; right: 18px; top: 244px; height: 28px; grid-template-columns: repeat(4, 1fr) 48px; gap: 4px; }
   .account-input { top: 282px; }
   .password-input { top: 322px; }
-  .play-button { left: 18px; right: 18px; top: 366px; height: 42px; }
+  .play-button { left: 18px; right: 92px; top: 366px; height: 42px; }
+  .spectate-button { right: 18px; top: 366px; width: 68px; height: 42px; }
   .help { top: 418px; font-size: 11px; line-height: 1.55; }
   .neterr { top: 412px; }
   .skill-shop { grid-template-columns: 1fr 1fr; }
@@ -234,6 +236,7 @@ html, body {
   .account-input { top: 266px; }
   .password-input { top: 306px; }
   .play-button { top: 348px; }
+  .spectate-button { top: 348px; }
   .help { display: none; }
   .touch-btn { width: 48px; height: 48px; }
   .touch-split { width: 60px; height: 60px; }

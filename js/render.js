@@ -86,7 +86,8 @@
       let cx = 0, cy = 0, tm = 0;
       for (const c of snap.cells) if (c.isMe) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
       if (tm > 0) { cam.x = cx / tm; cam.y = cy / tm; }
-      const want = U.clamp((this.h / 2) / (CFG.view.margin * (G.radius(snap.me.mass) + CFG.view.base)), CFG.view.min, CFG.view.max);
+      else if (snap.me.spectator) { cam.x = snap.me.x; cam.y = snap.me.y; }
+      const want = U.clamp((this.h / 2) / (CFG.view.margin * (G.radius(snap.me.mass || CFG.startMass) + CFG.view.base)), CFG.view.min, CFG.view.max);
       cam.scale += (want - cam.scale) * (dt ? 1 - Math.exp(-6 * dt) : 1);
     }
   };
@@ -768,10 +769,10 @@
     ctx.textBaseline = 'middle';
 
     if (G.settings.gameStats) {
-      const cells = snap.me.cells || 1;
+      const cells = snap.me.cells || 0;
       const score = this._fmtMass(snap.me.maxMass || snap.me.mass || 0);
       const mass = this._fmtMass(snap.me.mass || 0);
-      const text = '\u5206\u6570 ' + score + '     \u8d28\u91cf ' + mass + '     ' + cells + '/16';
+      const text = snap.me.spectator ? ('\u89c2\u6218\u4e2d     TOP ' + mass) : ('\u5206\u6570 ' + score + '     \u8d28\u91cf ' + mass + '     ' + cells + '/16');
       ctx.font = (mobile ? '600 12px ' : '600 16px ') + '"Microsoft YaHei", sans-serif';
       const w = Math.min(this.w - 22, Math.max(mobile ? 210 : 310, ctx.measureText(text).width + 28));
       const h = mobile ? 22 : 25, x = (this.w - w) / 2, y = this.h - h - (mobile ? 62 : 0);
