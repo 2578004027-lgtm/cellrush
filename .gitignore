@@ -7,3 +7,5 @@ server/data/
 .codex_frames/
 .cwal_har_extract/
 .video_frames/
+.video_frames_agar/
+.agar_har_extract/

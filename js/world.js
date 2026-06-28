@@ -166,7 +166,7 @@
         CFG.splitImpulse,
         CFG.splitImpulseMax || 6500
       );
-      const sep = r * (CFG.splitStartSeparation || 2.03);
+      const sep = r * (CFG.splitStartSeparation || 1.72);
       const back = sep * (CFG.splitBackPush || 0);
       c.x = U.clamp(c.x - ca * back, r, this.size - r);
       c.y = U.clamp(c.y - sa * back, r, this.size - r);
@@ -178,6 +178,7 @@
       nc.vx = ca * launch;
       nc.vy = sa * launch;
       nc.splitAttackUntil = this.time + 1.4;
+      nc.splitBornUntil = this.time + 0.18;
       p.cells.push(nc);
       const mAt = this.time + this._mergeDelay(half, p.cells.length);
       nc.mergeAt = mAt; c.mergeAt = mAt;
@@ -385,6 +386,7 @@
     // --- ejected mass: feed viruses, else get eaten by cells ---
     const remEject = new Set();
     for (const e of this.ejected) {
+      if (e.kind) continue;
       for (const v of this.viruses) {
         if (U.dist(e.x, e.y, v.x, v.y) < radius(v.mass)) {
           v.mass += e.mass; v.feed++; remEject.add(e.id);
@@ -403,7 +405,7 @@
         if (e.ownerId && e.ownerId === c.ownerId) { remEject.add(e.id); c.mass += e.mass; return; }
         if (e.kind === 'thorn') {
           remEject.add(e.id);
-          if (c.mass > CFG.splitMin * 2.2) this._popCell(c);
+          if (c.mass > CFG.splitMin * 2.2) this._popCell(c, e.angle);
           else c.mass = Math.max(CFG.startMass, c.mass - e.mass);
           this.events.push({ type: 'thorn', x: c.x, y: c.y, r: radius(c.mass), color: e.color });
           return;
@@ -446,7 +448,7 @@
         if (c.mass > v.mass * 1.15 && U.dist(c.x, c.y, v.x, v.y) < r - radius(v.mass) * 0.6) {
           c.mass += v.mass; v._dead = true; virusPopped = true;
           this.events.push({ type: 'pop', x: c.x, y: c.y, r: radius(c.mass), color: '#7be37b' });
-          if (!(cp && cp.admin)) this._popCell(c);
+          if (!(cp && cp.admin)) this._popCell(c, Math.atan2(c.vy || 0, c.vx || 0));
         }
       }
       // other cells
@@ -482,21 +484,28 @@
   };
 
   // explode a cell that swallowed a virus into many small pieces
-  World.prototype._popCell = function (c) {
+  World.prototype._popCell = function (c, biasAngle) {
     const p = this.players.get(c.ownerId);
     if (!p) return;
-    const pieces = Math.min(CFG.maxCells - p.cells.length, 7);
+    const pieces = Math.min(CFG.maxCells - p.cells.length, Math.max(7, Math.floor(c.mass / 85)));
     if (pieces <= 0) return;
     const each = c.mass / (pieces + 1);
     c.mass = each;
     const merge = this.time + this._mergeDelay(each, p.cells.length + pieces);
     c.mergeAt = merge;
     for (let i = 0; i < pieces; i++) {
-      const ang = U.rand(U.TAU);
-      const nc = this._newCell(p, c.x, c.y, each);
-      nc.vx = Math.cos(ang) * CFG.splitImpulse * 1.1;
-      nc.vy = Math.sin(ang) * CFG.splitImpulse * 1.1;
+      const spread = (typeof biasAngle === 'number' && Number.isFinite(biasAngle)) ? (biasAngle + Math.PI + U.rand(-1.25, 1.25)) : U.rand(U.TAU);
+      const ang = (i % 3 === 0) ? U.rand(U.TAU) : spread;
+      const rr = radius(each);
+      const nc = this._newCell(p,
+        U.clamp(c.x + Math.cos(ang) * rr * 0.45, rr, this.size - rr),
+        U.clamp(c.y + Math.sin(ang) * rr * 0.45, rr, this.size - rr),
+        each);
+      const impulse = CFG.splitImpulse * U.rand(0.9, 1.45);
+      nc.vx = Math.cos(ang) * impulse;
+      nc.vy = Math.sin(ang) * impulse;
       nc.mergeAt = merge;
+      nc.splitBornUntil = this.time + 0.22;
       p.cells.push(nc);
     }
   };

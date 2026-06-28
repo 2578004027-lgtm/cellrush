@@ -140,6 +140,7 @@ html, body {
 .row input[type=checkbox]::after { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #f4f4f4; top: 3px; left: 3px; transition: left .14s ease; }
 .row input[type=checkbox]:checked { background: #168de8; }
 .row input[type=checkbox]:checked::after { left: 23px; }
+.row select { height: 30px; min-width: 128px; border: 0; border-radius: 2px; outline: none; padding: 0 8px; color: var(--text); background: #323232; }
 .admin-auth { display: flex; align-items: center; gap: 8px; width: min(360px, 58%); }
 .admin-auth input {
   flex: 1; min-width: 0; height: 32px; border: 0; border-radius: 2px; outline: none; padding: 0 9px;

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>CellRush</title>
 <link rel="icon" href="data:," />
-<link rel="stylesheet" href="style.css?v=20260628-35" />
+<link rel="stylesheet" href="style.css?v=20260628-37" />
 <script>
 window.addEventListener('error', function (e) {
   var box = document.getElementById('client-error-overlay');
@@ -91,9 +91,10 @@ window.addEventListener('error', function (e) {
         <button class="server-pill">&#26412;&#22320;</button>
       </div>
       <ul id="room-list" class="room-list">
-        <li class="active" data-room="default"><span>&#40664;&#35748;&#25151;&#38388;<small id="room-default-meta">--ms</small></span><b id="room-default-status">...</b></li>
-        <li data-room="practice"><span>&#32451;&#20064;&#25151;&#38388;<small>AI / &#21333;&#25151;</small></span><b>&#20154;&#26426;</b></li>
-        <li data-room="nine"><span>&#20061;&#23467;&#26684;&#22823;&#22270;<small>6000 x 6000</small></span><b>&#24050;&#24320;</b></li>
+        <li class="active" data-room="agar" data-theme="classic"><span>Agar &#32463;&#20856;&#25151;<small id="room-default-meta">--ms</small></span><b id="room-default-status">...</b></li>
+        <li data-room="cwal" data-theme="dark"><span>cwal &#28145;&#33394;&#25151;<small>&#20061;&#23467;&#26684; / &#36793;&#32536;&#25552;&#31034;</small></span><b>&#24050;&#24320;</b></li>
+        <li data-room="practice" data-theme="classic"><span>&#32451;&#20064;&#25151;&#38388;<small>AI / &#21333;&#25151;</small></span><b>&#20154;&#26426;</b></li>
+        <li data-room="nine" data-theme="dark"><span>&#20061;&#23467;&#26684;&#22823;&#22270;<small>6000 x 6000</small></span><b>&#24050;&#24320;</b></li>
       </ul>
       <div class="skill-intro">
         <b>&#29305;&#27530;&#25216;&#33021;</b>
@@ -129,6 +130,7 @@ window.addEventListener('error', function (e) {
       <label class="row"><span>&#22768;&#38899;</span><input type="checkbox" id="set-sound" /></label>
       <label class="row"><span>&#21517;&#31216;</span><input type="checkbox" id="set-names" /></label>
       <label class="row"><span>&#23567;&#22320;&#22270;</span><input type="checkbox" id="set-minimap" /></label>
+      <label class="row"><span>&#22320;&#22270;&#20027;&#39064;<small>Agar &#32463;&#20856;&#27973;&#33394; / cwal &#28145;&#33394;</small></span><select id="set-map-theme"><option value="classic">Agar &#32463;&#20856;</option><option value="dark">cwal &#28145;&#33394;</option></select></label>
       <label class="row"><span>&#30382;&#32932;&#28210;&#26579;</span><input type="checkbox" id="set-visual-skins" /></label>
       <label class="row"><span>&#25216;&#33021;&#20809;&#29615;</span><input type="checkbox" id="set-visual-status" /></label>
       <label class="row"><span>&#21629;&#20013;&#29305;&#25928;</span><input type="checkbox" id="set-visual-fx" /></label>
@@ -205,14 +207,14 @@ window.addEventListener('error', function (e) {
     </div>
   </div>
 </div>
-<script src="js/config.js?v=20260628-35"></script>
-<script src="js/util.js?v=20260628-35"></script>
-<script src="js/world.js?v=20260628-35"></script>
-<script src="js/input.js?v=20260628-35"></script>
-<script src="js/audio.js?v=20260628-35"></script>
-<script src="js/render.js?v=20260628-35"></script>
-<script src="js/ui.js?v=20260628-35"></script>
-<script src="js/transport-net.js?v=20260628-35"></script>
-<script src="js/main.js?v=20260628-35"></script>
+<script src="js/config.js?v=20260628-37"></script>
+<script src="js/util.js?v=20260628-37"></script>
+<script src="js/world.js?v=20260628-37"></script>
+<script src="js/input.js?v=20260628-37"></script>
+<script src="js/audio.js?v=20260628-37"></script>
+<script src="js/render.js?v=20260628-37"></script>
+<script src="js/ui.js?v=20260628-37"></script>
+<script src="js/transport-net.js?v=20260628-37"></script>
+<script src="js/main.js?v=20260628-37"></script>
 </body>
 </html>

@@ -97,6 +97,11 @@
   Render.clear = function () {
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    if ((G.settings.mapTheme || 'classic') === 'classic') {
+      ctx.fillStyle = '#f2f4fb';
+      ctx.fillRect(0, 0, this.w, this.h);
+      return;
+    }
     const g = ctx.createLinearGradient(0, 0, this.w, this.h);
     g.addColorStop(0, '#080b18');
     g.addColorStop(0.45, '#0c1024');
@@ -182,10 +187,12 @@
     ctx.translate(-cam.x, -cam.y);
 
     this._grid(ctx);
+    const classic = (G.settings.mapTheme || 'classic') === 'classic';
     const border = ctx.createLinearGradient(0, 0, snap.world, snap.world);
-    border.addColorStop(0, 'rgba(52,145,255,0.50)'); border.addColorStop(1, 'rgba(255,144,0,0.34)');
+    if (classic) { border.addColorStop(0, 'rgba(80,100,130,0.28)'); border.addColorStop(1, 'rgba(80,100,130,0.20)'); }
+    else { border.addColorStop(0, 'rgba(52,145,255,0.50)'); border.addColorStop(1, 'rgba(255,144,0,0.34)'); }
     ctx.strokeStyle = border;
-    ctx.lineWidth = 7 / cam.scale;
+    ctx.lineWidth = (classic ? 5 : 7) / cam.scale;
     ctx.strokeRect(0, 0, snap.world, snap.world);
 
     const cb = this.cullBounds();
@@ -193,9 +200,10 @@
       if (f.x < cb.x0 || f.x > cb.x1 || f.y < cb.y0 || f.y > cb.y1) continue;
       const s = Math.max(3 / cam.scale, f.r * 1.55);
       ctx.save();
-      ctx.globalAlpha = 0.95;
-      ctx.fillStyle = f.color; ctx.fillRect(f.x - s * 0.5, f.y - s * 0.5, s, s);
-      ctx.globalAlpha = 0.22; ctx.fillStyle = '#fff'; ctx.fillRect(f.x - s * 0.22, f.y - s * 0.22, s * 0.44, s * 0.44);
+      ctx.globalAlpha = 0.96;
+      ctx.fillStyle = f.color;
+      if ((G.settings.mapTheme || 'classic') === 'classic') { ctx.beginPath(); ctx.arc(f.x, f.y, s * 0.48, 0, U.TAU); ctx.fill(); }
+      else { ctx.fillRect(f.x - s * 0.5, f.y - s * 0.5, s, s); ctx.globalAlpha = 0.22; ctx.fillStyle = '#fff'; ctx.fillRect(f.x - s * 0.22, f.y - s * 0.22, s * 0.44, s * 0.44); }
       ctx.restore();
     }
     for (const e of snap.ejected) {
@@ -357,20 +365,20 @@
 
   Render._ejected = function (ctx, e) {
     if (e.kind === 'thorn') {
-      const spikes = 14, r = Math.max(e.r, 10), ir = r * 0.58, a0 = e.angle || 0;
+      const spikes = 24, r = Math.max(e.r, 16), ir = r * 0.82, a0 = e.angle || 0;
       ctx.save();
       ctx.translate(e.x, e.y);
       ctx.rotate(a0);
       ctx.beginPath();
       for (let i = 0; i < spikes * 2; i++) {
         const a = Math.PI * i / spikes;
-        const rr = (i % 2) ? ir : r * 1.35;
+        const rr = (i % 2) ? ir : r * 1.08;
         const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
         if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
       }
       ctx.closePath();
       ctx.fillStyle = e.color || '#76ff45'; ctx.fill();
-      ctx.lineWidth = Math.max(2, r * 0.12); ctx.strokeStyle = '#249b38'; ctx.stroke();
+      ctx.lineWidth = Math.max(2, r * 0.055); ctx.strokeStyle = '#249b38'; ctx.stroke();
       ctx.restore();
       return;
     }
@@ -386,48 +394,53 @@
     const x0 = Math.floor(v.x0 / step) * step, x1 = Math.ceil(v.x1 / step) * step;
     const y0 = Math.floor(v.y0 / step) * step, y1 = Math.ceil(v.y1 / step) * step;
 
-    // subtle cwal-style sector tint, only 9 rects per frame
+    const classic = (G.settings.mapTheme || 'classic') === 'classic';
     const major = world / 3;
     ctx.save();
-    for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
-      const x = col * major, y = row * major;
-      if (x > v.x1 || x + major < v.x0 || y > v.y1 || y + major < v.y0) continue;
-      ctx.fillStyle = ((row + col) % 2) ? 'rgba(22,141,232,0.020)' : 'rgba(255,144,0,0.014)';
-      ctx.fillRect(x, y, major, major);
+    if (!classic) {
+      // subtle cwal-style sector tint, only 9 rects per frame
+      for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
+        const x = col * major, y = row * major;
+        if (x > v.x1 || x + major < v.x0 || y > v.y1 || y + major < v.y0) continue;
+        ctx.fillStyle = ((row + col) % 2) ? 'rgba(22,141,232,0.020)' : 'rgba(255,144,0,0.014)';
+        ctx.fillRect(x, y, major, major);
+      }
     }
 
     ctx.lineWidth = 1 / this.camera.scale;
-    ctx.strokeStyle = 'rgba(104,130,190,0.075)';
+    ctx.strokeStyle = classic ? 'rgba(150,158,175,0.28)' : 'rgba(104,130,190,0.075)';
     ctx.beginPath();
     for (let x = x0; x <= x1; x += step) { ctx.moveTo(x, v.y0); ctx.lineTo(x, v.y1); }
     for (let y = y0; y <= y1; y += step) { ctx.moveTo(v.x0, y); ctx.lineTo(v.x1, y); }
     ctx.stroke();
 
-    const bigStep = step * 4;
-    const bx0 = Math.floor(v.x0 / bigStep) * bigStep, bx1 = Math.ceil(v.x1 / bigStep) * bigStep;
-    const by0 = Math.floor(v.y0 / bigStep) * bigStep, by1 = Math.ceil(v.y1 / bigStep) * bigStep;
-    ctx.lineWidth = 1.4 / this.camera.scale;
-    ctx.strokeStyle = 'rgba(120,155,230,0.105)';
-    ctx.beginPath();
-    for (let x = bx0; x <= bx1; x += bigStep) { ctx.moveTo(x, v.y0); ctx.lineTo(x, v.y1); }
-    for (let y = by0; y <= by1; y += bigStep) { ctx.moveTo(v.x0, y); ctx.lineTo(v.x1, y); }
-    ctx.stroke();
+    if (!classic) {
+      const bigStep = step * 4;
+      const bx0 = Math.floor(v.x0 / bigStep) * bigStep, bx1 = Math.ceil(v.x1 / bigStep) * bigStep;
+      const by0 = Math.floor(v.y0 / bigStep) * bigStep, by1 = Math.ceil(v.y1 / bigStep) * bigStep;
+      ctx.lineWidth = 1.4 / this.camera.scale;
+      ctx.strokeStyle = 'rgba(120,155,230,0.105)';
+      ctx.beginPath();
+      for (let x = bx0; x <= bx1; x += bigStep) { ctx.moveTo(x, v.y0); ctx.lineTo(x, v.y1); }
+      for (let y = by0; y <= by1; y += bigStep) { ctx.moveTo(v.x0, y); ctx.lineTo(v.x1, y); }
+      ctx.stroke();
 
-    ctx.lineWidth = 3.5 / this.camera.scale;
-    ctx.strokeStyle = 'rgba(125,155,255,0.22)';
-    ctx.beginPath();
-    for (let i = 1; i < 3; i++) {
-      const p = major * i;
-      ctx.moveTo(p, 0); ctx.lineTo(p, world);
-      ctx.moveTo(0, p); ctx.lineTo(world, p);
+      ctx.lineWidth = 3.5 / this.camera.scale;
+      ctx.strokeStyle = 'rgba(125,155,255,0.22)';
+      ctx.beginPath();
+      for (let i = 1; i < 3; i++) {
+        const p = major * i;
+        ctx.moveTo(p, 0); ctx.lineTo(p, world);
+        ctx.moveTo(0, p); ctx.lineTo(world, p);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
 
     const px = this.camera.scale;
-    if (px > 0.18) {
+    if (!classic && px > 0.18) {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.font = '900 ' + Math.max(90, 130 / px) + 'px sans-serif';
-      ctx.fillStyle = 'rgba(180,205,255,0.060)';
+      ctx.fillStyle = classic ? 'rgba(70,80,95,0.075)' : 'rgba(180,205,255,0.060)';
       for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 3; col++) {
           const cx = major * (col + 0.5), cy = major * (row + 0.5);
@@ -569,16 +582,17 @@
   };
 
   Render._virus = function (ctx, v) {
-    const spikes = 20, r = v.r, ir = r * 0.86;
+    const classic = (G.settings.mapTheme || 'classic') === 'classic';
+    const spikes = classic ? 28 : 20, r = v.r, ir = r * (classic ? 0.82 : 0.86);
     ctx.beginPath();
     for (let i = 0; i < spikes * 2; i++) {
-      const ang = Math.PI * i / spikes, rr = (i % 2) ? ir : r * 1.05;
+      const ang = Math.PI * i / spikes, rr = (i % 2) ? ir : r * (classic ? 1.12 : 1.05);
       const x = v.x + Math.cos(ang) * rr, y = v.y + Math.sin(ang) * rr;
       if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
     }
     ctx.closePath();
-    ctx.fillStyle = 'rgba(80,235,118,0.86)'; ctx.fill();
-    ctx.lineWidth = Math.max(2, r * 0.045); ctx.strokeStyle = 'rgba(30,150,70,0.95)'; ctx.stroke();
+    ctx.fillStyle = classic ? '#33dd33' : 'rgba(80,235,118,0.86)'; ctx.fill();
+    ctx.lineWidth = Math.max(2, r * (classic ? 0.055 : 0.045)); ctx.strokeStyle = classic ? '#199b24' : 'rgba(30,150,70,0.95)'; ctx.stroke();
   };
 
   // turn sim events into transient ring effects

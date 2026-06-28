@@ -186,6 +186,7 @@
     const sound = document.getElementById('set-sound');
     const names = document.getElementById('set-names');
     const minimap = document.getElementById('set-minimap');
+    const mapTheme = document.getElementById('set-map-theme');
     const visualSkins = document.getElementById('set-visual-skins');
     const visualStatus = document.getElementById('set-visual-status');
     const visualFx = document.getElementById('set-visual-fx');
@@ -207,9 +208,11 @@
     const adminLogin = document.getElementById('set-admin-login');
     sound.checked = G.settings.sound; names.checked = G.settings.names;
     minimap.checked = G.settings.minimap;
+    if (mapTheme) { try { G.settings.mapTheme = localStorage.getItem('cr_mapTheme') || G.settings.mapTheme || 'classic'; } catch (e) { /* ignore */ } mapTheme.value = G.settings.mapTheme || 'classic'; }
     sound.addEventListener('change', () => { G.settings.sound = sound.checked; G.Audio.enabled = sound.checked; });
     names.addEventListener('change', () => { G.settings.names = names.checked; });
     minimap.addEventListener('change', () => { G.settings.minimap = minimap.checked; });
+    if (mapTheme) mapTheme.addEventListener('change', () => { G.settings.mapTheme = mapTheme.value || 'classic'; try { localStorage.setItem('cr_mapTheme', G.settings.mapTheme); } catch (e) { /* ignore */ } });
     const loadBool = (k, fallback) => { try { const v = localStorage.getItem('cr_' + k); return v == null ? fallback : v === '1'; } catch (e) { return fallback; } };
     const bindBool = (el, key) => { if (!el) return; G.settings[key] = loadBool(key, !!G.settings[key]); el.checked = !!G.settings[key]; el.addEventListener('change', () => { G.settings[key] = el.checked; try { localStorage.setItem('cr_' + key, el.checked ? '1' : '0'); } catch (e) { /* ignore */ } }); };
     bindBool(visualSkins, 'visualSkins');
@@ -286,6 +289,13 @@
     if (this.roomList) this.roomList.querySelectorAll('li').forEach((li) => li.addEventListener('click', () => {
       this.roomList.querySelectorAll('li').forEach((x) => x.classList.remove('active'));
       li.classList.add('active');
+      const theme = li.dataset.theme || '';
+      if (theme) {
+        G.settings.mapTheme = theme;
+        const sel = document.getElementById('set-map-theme');
+        if (sel) sel.value = theme;
+        try { localStorage.setItem('cr_mapTheme', theme); } catch (e) { /* ignore */ }
+      }
     }));
     this.refreshRoomStatus();
     clearInterval(this._roomTimer);
@@ -362,7 +372,7 @@
       const id = el.querySelector && el.querySelector('input') ? (el.querySelector('input').id || '') : (el.id || '');
       if (id === 'set-sound') return 'sound';
       if (id === 'skill-shop' || id === 'account-status' || id === 'bind-qq' || id === 'bind-qq-btn' || el.classList.contains('qq-bind-row') || id === 'set-admin-key' || el.classList.contains('admin-row')) return 'skill';
-      if (/visual|names|minimap|game-stats|perf-stats|player-status/.test(id)) return 'visual';
+      if (/visual|names|minimap|map-theme|game-stats|perf-stats|player-status/.test(id)) return 'visual';
       if (/cursor|enemy|mass|split|autosplit|death|chat|signal|edge/.test(id)) return 'control';
       if (el.classList.contains('set-help')) return 'control';
       return 'visual';
