@@ -98,6 +98,71 @@
     ctx.fillRect(0, 0, this.w, this.h);
   };
 
+  Render._menuInit = function () {
+    if (this._menuBlobs && this._menuBlobs.length) return;
+    const names = ['CellRush', 'rush', 'split', 'dash', 'poison', 'cwal', 'bot', 'virus'];
+    this._menuBlobs = [];
+    for (let i = 0; i < 22; i++) {
+      const hue = CFG.hues[i % CFG.hues.length];
+      this._menuBlobs.push({
+        x: Math.random() * Math.max(1, this.w), y: Math.random() * Math.max(1, this.h),
+        r: 18 + Math.random() * 78, vx: (Math.random() - 0.5) * 24, vy: (Math.random() - 0.5) * 24,
+        hue, name: names[i % names.length], phase: Math.random() * U.TAU,
+      });
+    }
+  };
+  Render.menuFrame = function (dt) {
+    const ctx = this.ctx;
+    this._menuInit();
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    const grd = ctx.createRadialGradient(this.w * 0.5, this.h * 0.44, 40, this.w * 0.5, this.h * 0.44, Math.max(this.w, this.h) * 0.78);
+    grd.addColorStop(0, '#171b31'); grd.addColorStop(0.55, '#0b1023'); grd.addColorStop(1, '#050508');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, this.w, this.h);
+
+    const step = this.w < 760 ? 44 : 58;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+    ctx.beginPath();
+    for (let x = -((performance.now() * 0.006) % step); x < this.w + step; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, this.h); }
+    for (let y = -((performance.now() * 0.004) % step); y < this.h + step; y += step) { ctx.moveTo(0, y); ctx.lineTo(this.w, y); }
+    ctx.stroke();
+
+    // tiny square food in the distance, cheap but makes the menu feel alive
+    const t = performance.now() / 1000;
+    for (let i = 0; i < 90; i++) {
+      const x = (i * 97 + t * 13) % (this.w + 80) - 40;
+      const y = (i * 53 + Math.sin(t * 0.6 + i) * 16) % (this.h + 80) - 40;
+      ctx.fillStyle = 'hsla(' + ((i * 37) % 360) + ',75%,60%,0.22)';
+      ctx.fillRect(x, y, 4, 4);
+    }
+
+    for (const b of this._menuBlobs) {
+      b.phase += dt * 1.4;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      const pad = b.r + 24;
+      if (b.x < -pad) b.x = this.w + pad; else if (b.x > this.w + pad) b.x = -pad;
+      if (b.y < -pad) b.y = this.h + pad; else if (b.y > this.h + pad) b.y = -pad;
+      const pulse = 1 + Math.sin(b.phase) * 0.025;
+      const r = b.r * pulse;
+      ctx.save();
+      ctx.globalAlpha = b.r > 70 ? 0.28 : 0.22;
+      ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, U.TAU);
+      ctx.fillStyle = 'hsl(' + b.hue + ',70%,56%)'; ctx.fill();
+      ctx.lineWidth = Math.max(2, r * 0.045); ctx.strokeStyle = 'hsla(' + b.hue + ',70%,24%,0.8)'; ctx.stroke();
+      if (r > 36) {
+        ctx.globalAlpha *= 0.9;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineJoin = 'round';
+        ctx.font = '700 ' + Math.max(11, r * 0.28) + 'px sans-serif'; ctx.lineWidth = Math.max(2, r * 0.035);
+        ctx.strokeText(b.name, b.x, b.y); ctx.fillText(b.name, b.x, b.y);
+      }
+      ctx.restore();
+    }
+
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(0, 0, this.w, this.h);
+  };
+
   // one full frame: smooth/predict -> camera -> draw
   Render.frame = function (snap, dt, input) {
     this._smooth(snap, dt, input);

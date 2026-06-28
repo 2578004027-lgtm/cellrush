@@ -42,7 +42,7 @@
       frames++; fpsAcc += dt;
       if (fpsAcc > 0.5) { G.Render.fps = Math.round(frames / fpsAcc); frames = 0; fpsAcc = 0; }
     } else {
-      G.Render.clear();
+      G.Render.menuFrame(dt);
     }
   }
 

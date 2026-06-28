@@ -25,14 +25,25 @@ html, body {
   position: relative; width: min(92vw, 756px); height: min(86vh, 514px); min-height: 430px;
   display: grid; grid-template-columns: 216px 1fr 216px;
   border-radius: 3px; border: 1px solid rgba(255,255,255,0.08); background: var(--panel);
-  box-shadow: 0 18px 46px rgba(0,0,0,0.48);
+  box-shadow: 0 18px 46px rgba(0,0,0,0.48), 0 0 0 1px rgba(255,255,255,0.03) inset;
   overflow: hidden;
+  backdrop-filter: blur(2px);
 }
-.left-panel, .middle-panel, .right-panel { position: relative; min-width: 0; height: 100%; padding-top: 54px; }
+.shell-panel::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(135deg, rgba(22,141,232,0.14), transparent 34%, transparent 66%, rgba(255,144,0,0.08));
+  opacity: .9;
+}
+.shell-panel::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 50px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+}
+.left-panel, .middle-panel, .right-panel { position: relative; z-index: 1; min-width: 0; height: 100%; padding-top: 54px; }
 .middle-panel { border-left: 1px solid rgba(0,0,0,0.24); border-right: 1px solid rgba(0,0,0,0.24); }
 .panel-title {
   position: absolute; top: 8px; left: 8px; right: 8px; height: 42px; display: flex; align-items: center; justify-content: center;
-  border-radius: 3px; background: var(--panel-dark); color: var(--text); font-size: 18px; font-weight: 500;
+  border-radius: 3px; background: linear-gradient(180deg, #222, #161616); color: var(--text); font-size: 18px; font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.045);
 }
 .brand-title { font-size: 25px; letter-spacing: 0; }
 
@@ -49,7 +60,7 @@ html, body {
   color: rgba(255,255,255,0.92); font-size: 10px; font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,0.95);
   box-shadow: 0 0 6px 3px rgba(0,0,0,0.25); transition: transform .16s ease, box-shadow .16s ease;
 }
-.swatch:hover, .swatch.sel { transform: scale(1.12); box-shadow: 0 0 14px 6px rgba(0,0,0,0.62); }
+.swatch:hover, .swatch.sel { transform: scale(1.12); box-shadow: 0 0 14px 6px rgba(0,0,0,0.62), 0 0 0 3px rgba(22,141,232,0.38); }
 
 .avatar-preview {
   position: absolute; left: 50%; top: 84px; width: 160px; height: 160px; transform: translateX(-50%);
@@ -73,7 +84,7 @@ html, body {
 .skin-input { top: 256px; font-size: 13px; }
 .account-input { top: 294px; }
 .password-input { top: 332px; }
-.play-button { position: absolute; left: 20px; right: 20px; top: 376px; background: var(--blue); border-color: #0b6db7; font-size: 17px; }
+.play-button { position: absolute; left: 20px; right: 20px; top: 376px; background: linear-gradient(180deg, #1d9df7, #0874c4); border-color: #0b6db7; font-size: 17px; box-shadow: 0 8px 22px rgba(22,141,232,0.22); }
 .help { position: absolute; left: 18px; right: 18px; top: 426px; color: var(--muted); font-size: 12px; line-height: 1.7; text-align: center; }
 .help b { color: rgba(255,255,255,0.9); font-weight: 600; }
 .neterr { position: absolute; left: 20px; right: 20px; top: 418px; color: #ff8aa0; font-size: 13px; line-height: 1.45; text-align: center; }
@@ -84,10 +95,11 @@ html, body {
 .server-pill.active, .server-pill:hover { background: #323232; }
 .room-list { position: absolute; top: 112px; left: 10px; right: 10px; height: 240px; overflow-y: auto; list-style: none; border-radius: 3px; background: #323232; }
 .room-list li { min-height: 30px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; cursor: pointer; }
-.room-list li.active, .room-list li:hover { background: rgba(76,76,76,0.65); }
+.room-list li.active, .room-list li:hover { background: linear-gradient(90deg, rgba(22,141,232,0.55), rgba(76,76,76,0.36)); }
+.room-list li.active b { color: #7cffb0; }
 .room-list span { font-size: 15px; }
 .room-list b { font-size: 13px; font-weight: 500; color: var(--muted); }
-.skill-intro { position: absolute; left: 10px; right: 10px; top: 366px; padding: 9px 10px; border-radius: 3px; background: #323232; color: rgba(255,255,255,0.72); font-size: 12px; line-height: 1.55; }
+.skill-intro { position: absolute; left: 10px; right: 10px; top: 366px; padding: 9px 10px; border-radius: 3px; background: linear-gradient(180deg, #343434, #292929); color: rgba(255,255,255,0.72); font-size: 12px; line-height: 1.55; border: 1px solid rgba(255,255,255,0.055); }
 .skill-intro b { display: block; color: var(--text); margin-bottom: 3px; font-size: 13px; }
 .skill-intro span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .skill-intro em { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; margin-right: 5px; border-radius: 2px; background: rgba(22,141,232,0.75); color: #fff; font-style: normal; font-weight: 800; }
