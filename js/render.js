@@ -196,6 +196,7 @@
     stack.sort((a, b) => (a.mass || 0) - (b.mass || 0));
     const squeeze = G.settings.visualSqueeze ? this._squeezeMap(stack, dt) : null;
     for (const o of stack) { if (o._isVirus) this._virus(ctx, o); else this._cell(ctx, o, squeeze && squeeze.get(o.id)); }
+    this._assists(ctx, snap, input);
     this._spawnFx(snap.events); this._drawFx(ctx, dt);
 
     ctx.restore();
@@ -205,6 +206,68 @@
     this._skillbar(snap);
     this._hud(snap);
     this._feedPanel(dt);
+  };
+
+  Render._assists = function (ctx, snap, input) {
+    if (!snap || !snap.me) return;
+    const meCells = (snap.cells || []).filter((c) => c.isMe);
+    if (!meCells.length) return;
+    let cx = 0, cy = 0, tm = 0, myMax = 0;
+    for (const c of meCells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; if (c.mass > myMax) myMax = c.mass; }
+    cx /= tm; cy /= tm;
+    const scale = this.camera.scale || 1;
+
+    if (G.settings.cursorLine && input) {
+      const dx = input.tx - cx, dy = input.ty - cy, d = Math.hypot(dx, dy);
+      if (d > 8) {
+        ctx.save();
+        ctx.lineWidth = Math.max(1.2, 1.7 / scale);
+        ctx.strokeStyle = 'rgba(255,255,255,0.34)';
+        ctx.setLineDash([18 / scale, 12 / scale]);
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(input.tx, input.ty); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255,255,255,0.72)';
+        ctx.beginPath(); ctx.arc(input.tx, input.ty, Math.max(3 / scale, 5), 0, U.TAU); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    if (!G.settings.enemyHint && !G.settings.massMarker) return;
+    const enemies = [];
+    for (const c of snap.cells || []) {
+      if (c.isMe || c.mass <= 0) continue;
+      const eatable = myMax >= c.mass * (CFG.eatRatio || 1.25);
+      const splitEatable = (myMax / 2) >= c.mass * (CFG.splitEatRatio || CFG.eatRatio || 1.25);
+      const dangerous = c.mass >= myMax * (CFG.eatRatio || 1.25);
+      if (!eatable && !splitEatable && !dangerous) continue;
+      enemies.push({ c, eatable, splitEatable, dangerous, score: Math.abs(c.x - cx) + Math.abs(c.y - cy) });
+    }
+    enemies.sort((a, b) => a.score - b.score);
+    const maxDraw = this.w < 760 ? 8 : 14;
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    for (const it of enemies.slice(0, maxDraw)) {
+      const c = it.c;
+      const color = it.dangerous ? '255,92,118' : (it.splitEatable ? '255,210,80' : '124,255,176');
+      if (G.settings.enemyHint) {
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.r + Math.max(8 / scale, c.r * 0.08), 0, U.TAU);
+        ctx.lineWidth = Math.max(2, c.r * 0.045);
+        ctx.strokeStyle = 'rgba(' + color + ',0.88)';
+        if (it.splitEatable && !it.eatable) ctx.setLineDash([8 / scale, 6 / scale]);
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      if (G.settings.massMarker && c.r * scale > 13) {
+        const label = it.dangerous ? '\u5371\u9669' : (it.splitEatable && !it.eatable ? '\u5206\u88c2' : '\u53ef\u5403');
+        const fs = Math.max(10 / scale, Math.min(15 / scale, c.r * 0.18));
+        ctx.font = '800 ' + fs + 'px "Microsoft YaHei", sans-serif';
+        ctx.lineWidth = Math.max(2 / scale, fs * 0.18);
+        ctx.strokeStyle = 'rgba(0,0,0,0.62)'; ctx.fillStyle = 'rgba(' + color + ',0.96)';
+        ctx.strokeText(label, c.x, c.y - c.r - Math.max(13 / scale, c.r * 0.12));
+        ctx.fillText(label, c.x, c.y - c.r - Math.max(13 / scale, c.r * 0.12));
+      }
+    }
+    ctx.restore();
   };
 
   Render._ejected = function (ctx, e) {

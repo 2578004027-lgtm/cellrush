@@ -124,6 +124,9 @@
     const visualFx = document.getElementById('set-visual-fx');
     const visualAllNames = document.getElementById('set-visual-allnames');
     const visualSqueeze = document.getElementById('set-visual-squeeze');
+    const cursorLine = document.getElementById('set-cursor-line');
+    const enemyHint = document.getElementById('set-enemy-hint');
+    const massMarker = document.getElementById('set-mass-marker');
     const adminKey = document.getElementById('set-admin-key');
     const adminLogin = document.getElementById('set-admin-login');
     sound.checked = G.settings.sound; names.checked = G.settings.names;
@@ -138,6 +141,9 @@
     bindBool(visualFx, 'visualFx');
     bindBool(visualAllNames, 'visualAllNames');
     bindBool(visualSqueeze, 'visualSqueeze');
+    bindBool(cursorLine, 'cursorLine');
+    bindBool(enemyHint, 'enemyHint');
+    bindBool(massMarker, 'massMarker');
     const unlockAdmin = () => {
       const key = adminKey ? adminKey.value.trim() : '';
       if (!key) return;
