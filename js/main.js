@@ -34,8 +34,10 @@
     if (dt > 0.25) dt = 0.25;
 
     if (transport) {
-      const input = (playing && !paused) ? G.Input.sample(G.Render.camera) : null;
-      transport.update(dt, input);
+      const input = playing ? G.Input.sample(G.Render.camera) : null;
+      if (input && input.pauseToggle) paused = !paused;
+      const sendInput = (playing && !paused) ? input : null;
+      transport.update(dt, sendInput);
       const snap = transport.getSnapshot();
       if (playing && snap.me && !camInit) { G.Render.centerOn(snap.me.x, snap.me.y); G.Render.camera.scale = 1; camInit = true; }
       G.Render.frame(snap, dt, input);

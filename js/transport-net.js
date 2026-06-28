@@ -85,7 +85,7 @@
     this._snapIntervals = [];
     this._snapSeq = 0;
     this._lastEventSeq = 0;
-    this._pending = { split: false, eject: false, skill: null };
+    this._pending = { split: 0, eject: 0, skill: null };
     this._aim = { tx: 0, ty: 0 };
     this._lastSend = 0;
     this._adminWant = false;
@@ -173,8 +173,8 @@
   };
   NetTransport.prototype.update = function (dt, input) {
     if (!this.ws || this.ws.readyState !== 1 || !input) return;
-    if (input.split) this._pending.split = true;
-    if (input.eject) this._pending.eject = true;
+    if (input.split || input.splitCount) this._pending.split = Math.max(this._pending.split || 0, input.splitCount || 1);
+    if (input.eject || input.ejectCount) this._pending.eject = Math.max(this._pending.eject || 0, input.ejectCount || 1);
     if (input.skill) this._pending.skill = input.skill;
     this._aim.tx = input.tx; this._aim.ty = input.ty;
 
@@ -183,10 +183,10 @@
     this._lastSend = now;
     this.ws.send(JSON.stringify({
       t: 'input', tx: this._aim.tx, ty: this._aim.ty,
-      split: this._pending.split, eject: this._pending.eject, skill: this._pending.skill,
+      split: (this._pending.split || 0) > 0, splitCount: this._pending.split || 0, eject: (this._pending.eject || 0) > 0, ejectCount: this._pending.eject || 0, skill: this._pending.skill,
       adminGrow: input.adminGrow, adminShrink: input.adminShrink,
     }));
-    this._pending = { split: false, eject: false, skill: null };
+    this._pending = { split: 0, eject: 0, skill: null };
   };
 
   NetTransport.prototype._consumeEvents = function (out, source) {

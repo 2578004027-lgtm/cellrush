@@ -70,8 +70,10 @@
     const p = this.players.get(playerId);
     if (!p || !p.alive) return;
     p.input.tx = input.tx; p.input.ty = input.ty;
-    if (input.split && this.time >= (p.silenceUntil || 0)) this._split(p);
-    if (input.eject) this._eject(p);
+    const splitCount = Math.max(input.split ? 1 : 0, Math.min(4, Math.floor(input.splitCount || 0)));
+    if (splitCount > 0 && this.time >= (p.silenceUntil || 0)) for (let i = 0; i < splitCount; i++) this._split(p);
+    const ejectCount = Math.max(input.eject ? 1 : 0, Math.min(8, Math.floor(input.ejectCount || 0)));
+    if (ejectCount > 0) for (let i = 0; i < ejectCount; i++) this._eject(p);
     if (input.skill) this._useSkill(p, input.skill);
     if (p.admin && input.adminGrow) for (const c of p.cells) c.mass += CFG.admin.growStep;
     if (p.admin && input.adminShrink) for (const c of p.cells) c.mass = Math.max(CFG.startMass, c.mass - CFG.admin.growStep);

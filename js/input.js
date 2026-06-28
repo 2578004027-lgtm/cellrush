@@ -2,7 +2,8 @@
 (function (G) {
   const Input = {
     mouseX: window.innerWidth / 2, mouseY: window.innerHeight / 2,
-    _split: false, _eject: false, _skill: null, _adminGrow: false, _adminShrink: false,
+    _split: 0, _eject: 0, _skill: null, _adminGrow: false, _adminShrink: false,
+    _ejectHeld: false, _lastMacroEject: 0, _pauseToggle: false, _lockMove: false, _lockedAim: null,
     _stick: { active: false, id: null, x: 0, y: 0, dx: 0, dy: 0 },
     _stickEl: null, _knobEl: null,
   };
@@ -22,8 +23,10 @@
   function fireButton(btn) {
     const action = btn.dataset.action;
     const skill = btn.dataset.skill;
-    if (action === 'split') Input._split = true;
-    else if (action === 'eject') Input._eject = true;
+    if (action === 'split') Input._split = Math.max(Input._split, 1);
+    else if (action === 'split2') Input._split = Math.max(Input._split, 2);
+    else if (action === 'split4') Input._split = Math.max(Input._split, 4);
+    else if (action === 'eject') Input._eject = Math.max(Input._eject, 1);
     else if (skill) Input._skill = skill;
   }
   function isUiTarget(e) {
@@ -95,23 +98,35 @@
     window.addEventListener('keydown', (e) => {
       if (isTextInput()) return;
 
-      if (e.code === 'Space') { Input._split = true; e.preventDefault(); return; }
+      if (e.code === 'Space') { Input._split = Math.max(Input._split, e.ctrlKey || e.altKey ? 4 : (e.shiftKey ? 2 : 1)); e.preventDefault(); return; }
       const k = e.key.toLowerCase();
-      if (k === 'w') { Input._eject = true; return; }
+      if (k === 'w') { Input._eject = Math.max(Input._eject, 1); Input._ejectHeld = true; return; }
+      if (k === 's') { Input._pauseToggle = true; e.preventDefault(); return; }
+      if (k === 'l') { Input._lockMove = !Input._lockMove; Input._lockedAim = null; e.preventDefault(); return; }
       if (SKILL_KEYS[k]) { Input._skill = SKILL_KEYS[k]; return; }
       if (k === ']' || k === '=' ) { Input._adminGrow = true; return; }
       if (k === '[' || k === '-') { Input._adminShrink = true; return; }
     });
+    window.addEventListener('keyup', (e) => {
+      if ((e.key || '').toLowerCase() === 'w') Input._ejectHeld = false;
+    });
   };
 
   Input.sample = function (camera) {
-    const w = G.Render.screenToWorld(Input.mouseX, Input.mouseY, camera);
+    let w = G.Render.screenToWorld(Input.mouseX, Input.mouseY, camera);
+    if (Input._lockMove) {
+      if (!Input._lockedAim) Input._lockedAim = { x: w.x, y: w.y };
+      w = Input._lockedAim;
+    }
+    const now = (performance && performance.now) ? performance.now() : Date.now();
+    if (Input._ejectHeld && now - Input._lastMacroEject > 55) { Input._eject = Math.max(Input._eject, 1); Input._lastMacroEject = now; }
     const inp = {
       tx: w.x, ty: w.y,
-      split: Input._split, eject: Input._eject, skill: Input._skill,
+      split: Input._split, splitCount: Input._split, eject: Input._eject > 0, ejectCount: Input._eject, skill: Input._skill,
       adminGrow: Input._adminGrow, adminShrink: Input._adminShrink,
+      pauseToggle: Input._pauseToggle, lockMove: Input._lockMove,
     };
-    Input._split = false; Input._eject = false; Input._skill = null;
+    Input._split = 0; Input._eject = 0; Input._skill = null; Input._pauseToggle = false;
     Input._adminGrow = false; Input._adminShrink = false;
     return inp;
   };

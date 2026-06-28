@@ -180,7 +180,7 @@ html, body {
   position: fixed; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 8;
   display: none; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none;
 }
-.touch-row { display: flex; gap: 10px; pointer-events: auto; }
+.touch-row { display: flex; gap: 8px; pointer-events: auto; }
 .touch-btn {
   width: 54px; height: 54px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.18);
   background: rgba(37,37,37,0.62); color: rgba(255,255,255,0.95); font-weight: 800; font-size: 14px;
@@ -238,8 +238,8 @@ html, body {
   .play-button { top: 348px; }
   .spectate-button { top: 348px; }
   .help { display: none; }
-  .touch-btn { width: 48px; height: 48px; }
-  .touch-split { width: 60px; height: 60px; }
+  .touch-btn { width: 46px; height: 46px; }
+  .touch-split { width: 58px; height: 58px; }
 }
 .admin-panel-box { width: min(92vw, 620px); max-height: min(86vh, 620px); overflow: auto; background: var(--panel); border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; box-shadow: 0 18px 46px rgba(0,0,0,0.55); padding: 18px; }
 .admin-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }

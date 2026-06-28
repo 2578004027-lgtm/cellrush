@@ -190,6 +190,7 @@
     const playerStatus = document.getElementById('set-player-status');
     const splitPreview = document.getElementById('set-split-preview');
     const autosplitAlert = document.getElementById('set-autosplit-alert');
+    const deathMenu = document.getElementById('set-death-menu');
     const adminKey = document.getElementById('set-admin-key');
     const adminLogin = document.getElementById('set-admin-login');
     sound.checked = G.settings.sound; names.checked = G.settings.names;
@@ -212,6 +213,7 @@
     bindBool(playerStatus, 'playerStatus');
     bindBool(splitPreview, 'splitPreview');
     bindBool(autosplitAlert, 'autosplitAlert');
+    bindBool(deathMenu, 'deathMenu');
     const unlockAdmin = () => {
       const key = adminKey ? adminKey.value.trim() : '';
       if (!key) return;
@@ -332,7 +334,8 @@
   UI.showDeath = function (stats, survived) {
     this.deathStats.innerHTML =
       '\u6700\u9ad8\u8d28\u91cf <b>' + Math.floor(stats.maxMass || 0) + '</b><br>\u5b58\u6d3b <b>' + survived.toFixed(0) + '</b> \u79d2<br>\u94bb\u77f3 +<b>' + Math.floor(stats.diamondsEarned || 0) + '</b>';
-    this.death.classList.remove('hidden');
+    if (G.settings.deathMenu) { this.menu.classList.remove('hidden'); this.death.classList.add('hidden'); }
+    else this.death.classList.remove('hidden');
   };
 
   UI.setAccount = function (msg) {
