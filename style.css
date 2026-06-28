@@ -100,11 +100,12 @@ html, body {
 .server-pill { flex: 1; border: 0; border-radius: 3px; color: var(--text); background: transparent; cursor: pointer; }
 .server-pill.active, .server-pill:hover { background: #323232; }
 .room-list { position: absolute; top: 112px; left: 10px; right: 10px; height: 240px; overflow-y: auto; list-style: none; border-radius: 3px; background: #323232; }
-.room-list li { min-height: 30px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; cursor: pointer; }
+.room-list li { min-height: 45px; display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; cursor: pointer; }
 .room-list li.active, .room-list li:hover { background: linear-gradient(90deg, rgba(22,141,232,0.55), rgba(76,76,76,0.36)); }
 .room-list li.active b { color: #7cffb0; }
-.room-list span { font-size: 15px; }
-.room-list b { font-size: 13px; font-weight: 500; color: var(--muted); }
+.room-list span { font-size: 15px; display: flex; flex-direction: column; gap: 2px; }
+.room-list small { color: var(--muted); font-size: 10.5px; }
+.room-list b { font-size: 13px; font-weight: 700; color: var(--muted); }
 .skill-intro { position: absolute; left: 10px; right: 10px; top: 366px; padding: 9px 10px; border-radius: 3px; background: linear-gradient(180deg, #343434, #292929); color: rgba(255,255,255,0.72); font-size: 12px; line-height: 1.55; border: 1px solid rgba(255,255,255,0.055); }
 .skill-intro b { display: block; color: var(--text); margin-bottom: 3px; font-size: 13px; }
 .skill-intro span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

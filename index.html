@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>CellRush</title>
 <link rel="icon" href="data:," />
-<link rel="stylesheet" href="style.css?v=20260628-33" />
+<link rel="stylesheet" href="style.css?v=20260628-34" />
 <script>
 window.addEventListener('error', function (e) {
   var box = document.getElementById('client-error-overlay');
@@ -90,9 +90,10 @@ window.addEventListener('error', function (e) {
         <button class="server-pill active">&#19978;&#28023;</button>
         <button class="server-pill">&#26412;&#22320;</button>
       </div>
-      <ul class="room-list">
-        <li class="active"><span>&#40664;&#35748;&#25151;&#38388;</span><b>&#22312;&#32447;</b></li>
-        <li><span>&#32451;&#20064;&#25151;&#38388;</span><b>&#20154;&#26426;</b></li>
+      <ul id="room-list" class="room-list">
+        <li class="active" data-room="default"><span>&#40664;&#35748;&#25151;&#38388;<small id="room-default-meta">--ms</small></span><b id="room-default-status">...</b></li>
+        <li data-room="practice"><span>&#32451;&#20064;&#25151;&#38388;<small>AI / &#21333;&#25151;</small></span><b>&#20154;&#26426;</b></li>
+        <li data-room="nine"><span>&#20061;&#23467;&#26684;&#22823;&#22270;<small>6000 x 6000</small></span><b>&#24050;&#24320;</b></li>
       </ul>
       <div class="skill-intro">
         <b>&#29305;&#27530;&#25216;&#33021;</b>
@@ -203,14 +204,14 @@ window.addEventListener('error', function (e) {
     </div>
   </div>
 </div>
-<script src="js/config.js?v=20260628-33"></script>
-<script src="js/util.js?v=20260628-33"></script>
-<script src="js/world.js?v=20260628-33"></script>
-<script src="js/input.js?v=20260628-33"></script>
-<script src="js/audio.js?v=20260628-33"></script>
-<script src="js/render.js?v=20260628-33"></script>
-<script src="js/ui.js?v=20260628-33"></script>
-<script src="js/transport-net.js?v=20260628-33"></script>
-<script src="js/main.js?v=20260628-33"></script>
+<script src="js/config.js?v=20260628-34"></script>
+<script src="js/util.js?v=20260628-34"></script>
+<script src="js/world.js?v=20260628-34"></script>
+<script src="js/input.js?v=20260628-34"></script>
+<script src="js/audio.js?v=20260628-34"></script>
+<script src="js/render.js?v=20260628-34"></script>
+<script src="js/ui.js?v=20260628-34"></script>
+<script src="js/transport-net.js?v=20260628-34"></script>
+<script src="js/main.js?v=20260628-34"></script>
 </body>
 </html>

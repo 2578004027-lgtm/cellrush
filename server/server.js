@@ -113,6 +113,11 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
   '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.task': 'application/octet-stream' };
 const httpServer = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]);
+  if (p === '/api/status') {
+    const body = JSON.stringify(statusPayload());
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(body); return;
+  }
   if (p === '/') p = '/index.html';
   const file = path.normalize(path.join(ROOT, p));
   if (!file.startsWith(ROOT)) { res.writeHead(403); res.end('forbidden'); return; }
@@ -154,6 +159,26 @@ function tuningSnapshot() {
   for (const k of Object.keys(TUNABLES)) out[k] = tuneGet(TUNABLES[k].path);
   return out;
 }
+
+function aliveStats() {
+  let humans = 0, botsAlive = 0, spectators = 0, alive = 0;
+  for (const p of world.players.values()) {
+    if (p.spectator) spectators++;
+    if (!p.alive) continue;
+    alive++;
+    if (p.isBot) botsAlive++; else humans++;
+  }
+  return { humans, bots: botsAlive, spectators, alive };
+}
+function statusPayload() {
+  const st = aliveStats();
+  return {
+    ok: true, room: 'default', region: 'Shanghai', world: world.size,
+    clients: clients.size, humans: st.humans, bots: st.bots, spectators: st.spectators, alive: st.alive,
+    food: world.food.length, viruses: world.viruses.length, ejected: world.ejected.length, cells: cellCount(), time: Math.round(world.time || 0), now: Date.now()
+  };
+}
+
 function applyAdminTuning(params) {
   if (params && typeof params === 'object') {
     for (const k of Object.keys(params)) {

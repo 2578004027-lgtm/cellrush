@@ -23,6 +23,9 @@
     this.preview = document.getElementById('avatar-preview');
     this.playBtn = document.getElementById('play');
     this.spectateBtn = document.getElementById('spectate');
+    this.roomList = document.getElementById('room-list');
+    this.roomStatus = document.getElementById('room-default-status');
+    this.roomMeta = document.getElementById('room-default-meta');
     this.respawnBtn = document.getElementById('respawn');
     this.deathStats = document.getElementById('death-stats');
     this.selectedHue = U.pick(CFG.hues);
@@ -242,6 +245,7 @@
     this.renderSkillShop();
     this.initChat();
     this.initSettingsTabs();
+    this.initRoomStatus();
     const helpClose = document.getElementById('help-close');
     if (helpClose) helpClose.addEventListener('click', () => this.closeHelp());
 
@@ -273,6 +277,30 @@
   UI.escapeHtml = function (s) {
     return ('' + (s || '')).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   };
+
+  UI.initRoomStatus = function () {
+    if (this.roomList) this.roomList.querySelectorAll('li').forEach((li) => li.addEventListener('click', () => {
+      this.roomList.querySelectorAll('li').forEach((x) => x.classList.remove('active'));
+      li.classList.add('active');
+    }));
+    this.refreshRoomStatus();
+    clearInterval(this._roomTimer);
+    this._roomTimer = setInterval(() => this.refreshRoomStatus(), 3500);
+  };
+  UI.refreshRoomStatus = function () {
+    if (!this.roomStatus && !this.roomMeta) return;
+    const t0 = (performance && performance.now) ? performance.now() : Date.now();
+    fetch('/api/status', { cache: 'no-store' }).then((r) => r.json()).then((s) => {
+      const t1 = (performance && performance.now) ? performance.now() : Date.now();
+      const ping = Math.max(1, Math.round(t1 - t0));
+      if (this.roomStatus) this.roomStatus.textContent = (s.humans || 0) + '/' + (s.alive || 0);
+      if (this.roomMeta) this.roomMeta.textContent = ping + 'ms  AI ' + (s.bots || 0) + '  cell ' + (s.cells || 0);
+    }).catch(() => {
+      if (this.roomStatus) this.roomStatus.textContent = '\u79bb\u7ebf';
+      if (this.roomMeta) this.roomMeta.textContent = '--ms';
+    });
+  };
+
   UI.initChat = function () {
     if (!this.chatPanel || !this.chatInput || !this.chatLog) return;
     this.chatMessages = [];
