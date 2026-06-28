@@ -85,7 +85,7 @@
     this._snapIntervals = [];
     this._snapSeq = 0;
     this._lastEventSeq = 0;
-    this._pending = { split: 0, eject: 0, skill: null };
+    this._pending = { split: 0, eject: 0, skill: null, signal: false };
     this._aim = { tx: 0, ty: 0 };
     this._lastSend = 0;
     this._adminWant = false;
@@ -171,6 +171,8 @@
       if (this.opts.onDead) this.opts.onDead(m);
     } else if (m.t === 'chat') {
       if (this.opts.onChat) this.opts.onChat(m);
+    } else if (m.t === 'signal') {
+      if (this.opts.onSignal) this.opts.onSignal(m);
     }
   };
   NetTransport.prototype.update = function (dt, input) {
@@ -178,6 +180,7 @@
     if (input.split || input.splitCount) this._pending.split = Math.max(this._pending.split || 0, input.splitCount || 1);
     if (input.eject || input.ejectCount) this._pending.eject = Math.max(this._pending.eject || 0, input.ejectCount || 1);
     if (input.skill) this._pending.skill = input.skill;
+    if (input.signal) this._pending.signal = true;
     this._aim.tx = input.tx; this._aim.ty = input.ty;
 
     const now = (performance && performance.now) ? performance.now() : 0;
@@ -186,9 +189,10 @@
     this.ws.send(JSON.stringify({
       t: 'input', tx: this._aim.tx, ty: this._aim.ty,
       split: (this._pending.split || 0) > 0, splitCount: this._pending.split || 0, eject: (this._pending.eject || 0) > 0, ejectCount: this._pending.eject || 0, skill: this._pending.skill,
+      signal: !!this._pending.signal,
       adminGrow: input.adminGrow, adminShrink: input.adminShrink,
     }));
-    this._pending = { split: 0, eject: 0, skill: null };
+    this._pending = { split: 0, eject: 0, skill: null, signal: false };
   };
 
   NetTransport.prototype._consumeEvents = function (out, source) {

@@ -211,6 +211,7 @@ function makeClient(id) {
     seen: { food: new Map(), viruses: new Map(), ejected: new Map() },
     forceFull: { food: true, viruses: true, ejected: true },
     lastChatAt: 0,
+    lastSignalAt: 0,
   };
 }
 function changed(prev, obj, fields) {
@@ -278,7 +279,19 @@ wss.on('connection', (ws) => {
       if (m.spectate) { p.spectator = true; p.alive = false; p.cells = []; systemChat(p.name + ' \u5f00\u59cb\u89c2\u6218'); }
       else { p.spectator = false; if (!p.alive || !p.cells.length) world.spawnPlayer(p); loginAccount(p, ws, m.account, m.password); systemChat(p.name + ' \u52a0\u5165\u4e86\u6e38\u620f'); }
     }
-    else if (m.t === 'input') { world.applyInput(id, m); }
+    else if (m.t === 'input') {
+      if (m.signal) {
+        const nowSignal = Date.now();
+        if (nowSignal - (client.lastSignalAt || 0) > 1200) {
+          client.lastSignalAt = nowSignal;
+          const sx = Math.max(0, Math.min(world.size, Number(m.tx) || 0));
+          const sy = Math.max(0, Math.min(world.size, Number(m.ty) || 0));
+          const payload = JSON.stringify({ t: 'signal', name: p.name || 'Player', x: sx, y: sy, color: (p.color && p.color.css) || '#7cffb0', at: nowSignal });
+          for (const qws of clients.keys()) if (qws.readyState === 1) qws.send(payload);
+        }
+      }
+      world.applyInput(id, m);
+    }
     else if (m.t === 'respawn') { if (m.name) p.name = ('' + m.name).slice(0, 14); applyColor(p, m.color); applySkin(p, m.skin); p.spectator = false; world.spawnPlayer(p); client.deadNotified = false; }
     else if (m.t === 'adminAuth') {
       const ok = !!(ADMIN_KEY && typeof m.key === 'string' && m.key === ADMIN_KEY);

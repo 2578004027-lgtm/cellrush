@@ -10,6 +10,7 @@
     camera: { x: CFG.worldSize / 2, y: CFG.worldSize / 2, scale: 1 },
     _lerp: new Map(),       // id -> {x,y} eased draw positions
     _fx: [],                // transient visual effects (split/merge/pop rings)
+    _signals: [],           // short-lived map pings from G key
     _feed: [],              // short combat/event messages
     _squeeze: new Map(),
     _skins: new Map(),      // url -> HTMLImageElement cache for cell skins
@@ -198,6 +199,7 @@
     const squeeze = G.settings.visualSqueeze ? this._squeezeMap(stack, dt) : null;
     for (const o of stack) { if (o._isVirus) this._virus(ctx, o); else this._cell(ctx, o, squeeze && squeeze.get(o.id)); }
     this._assists(ctx, snap, input);
+    this._drawSignals(ctx, dt);
     this._spawnFx(snap.events); this._drawFx(ctx, dt);
 
     ctx.restore();
@@ -579,6 +581,45 @@
     }
   };
 
+  Render.addSignal = function (m) {
+    if (!m) return;
+    const x = Number(m.x), y = Number(m.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    this._signals.push({ x, y, name: (m.name || 'Player').slice(0, 14), color: m.color || '#7cffb0', age: 0, ttl: 3.8 });
+    if (this._signals.length > 16) this._signals.splice(0, this._signals.length - 16);
+  };
+  Render._drawSignals = function (ctx, dt) {
+    for (const s of this._signals) s.age += dt;
+    this._signals = this._signals.filter((s) => s.age < s.ttl);
+    if (!G.settings.signalMarker || !this._signals.length) return;
+    const scale = this.camera.scale || 1;
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    for (const s of this._signals) {
+      const t = U.clamp(s.age / s.ttl, 0, 1);
+      const pulse = 1 + Math.sin(s.age * 8) * 0.06;
+      const a = 1 - t;
+      const r = (58 + 90 * t) / scale;
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = Math.max(2 / scale, 3);
+      ctx.beginPath(); ctx.arc(s.x, s.y, r * pulse, 0, U.TAU); ctx.stroke();
+      ctx.globalAlpha = a * 0.88;
+      ctx.beginPath();
+      ctx.moveTo(s.x - 22 / scale, s.y); ctx.lineTo(s.x + 22 / scale, s.y);
+      ctx.moveTo(s.x, s.y - 22 / scale); ctx.lineTo(s.x, s.y + 22 / scale);
+      ctx.stroke();
+      const fs = Math.max(11 / scale, 14 / scale);
+      ctx.font = '900 ' + fs + 'px "Microsoft YaHei", sans-serif';
+      ctx.lineWidth = Math.max(2 / scale, fs * 0.18);
+      ctx.strokeStyle = 'rgba(0,0,0,0.70)'; ctx.fillStyle = '#fff';
+      const txt = s.name + ' G';
+      ctx.strokeText(txt, s.x, s.y - r - 18 / scale);
+      ctx.fillText(txt, s.x, s.y - r - 18 / scale);
+    }
+    ctx.restore();
+  };
+
   Render._round = function (ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -660,6 +701,17 @@
       ctx.arc(px, py, p.isMe ? (mobile ? 3.8 : 5) : 2 + Math.min(mobile ? 2 : 4, p.mass / 500), 0, U.TAU);
       ctx.fill();
       if (p.isMe) { ctx.strokeStyle = 'rgba(124,255,176,0.55)'; ctx.beginPath(); ctx.arc(px, py, mobile ? 7 : 9, 0, U.TAU); ctx.stroke(); }
+    }
+    if (G.settings.signalMarker && this._signals && this._signals.length) {
+      for (const sg of this._signals) {
+        const a = Math.max(0, 1 - sg.age / sg.ttl);
+        const px = x + sg.x * k, py = y + sg.y * k;
+        ctx.globalAlpha = 0.25 + 0.75 * a;
+        ctx.strokeStyle = sg.color || '#7cffb0'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(px, py, mobile ? 5 : 7, 0, U.TAU); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(px - 4, py); ctx.lineTo(px + 4, py); ctx.moveTo(px, py - 4); ctx.lineTo(px, py + 4); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
     }
     ctx.restore();
   };

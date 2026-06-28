@@ -195,6 +195,7 @@
     const autosplitAlert = document.getElementById('set-autosplit-alert');
     const deathMenu = document.getElementById('set-death-menu');
     const showChat = document.getElementById('set-show-chat');
+    const signalMarker = document.getElementById('set-signal-marker');
     const adminKey = document.getElementById('set-admin-key');
     const adminLogin = document.getElementById('set-admin-login');
     sound.checked = G.settings.sound; names.checked = G.settings.names;
@@ -219,6 +220,7 @@
     bindBool(autosplitAlert, 'autosplitAlert');
     bindBool(deathMenu, 'deathMenu');
     bindBool(showChat, 'showChat');
+    bindBool(signalMarker, 'signalMarker');
     const unlockAdmin = () => {
       const key = adminKey ? adminKey.value.trim() : '';
       if (!key) return;

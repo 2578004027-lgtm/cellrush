@@ -2,7 +2,7 @@
 (function (G) {
   const Input = {
     mouseX: window.innerWidth / 2, mouseY: window.innerHeight / 2,
-    _split: 0, _eject: 0, _skill: null, _adminGrow: false, _adminShrink: false,
+    _split: 0, _eject: 0, _skill: null, _signal: false, _adminGrow: false, _adminShrink: false,
     _ejectHeld: false, _lastMacroEject: 0, _pauseToggle: false, _lockMove: false, _lockedAim: null,
     _stick: { active: false, id: null, x: 0, y: 0, dx: 0, dy: 0 },
     _stickEl: null, _knobEl: null,
@@ -27,6 +27,7 @@
     else if (action === 'split2') Input._split = Math.max(Input._split, 2);
     else if (action === 'split4') Input._split = Math.max(Input._split, 4);
     else if (action === 'eject') Input._eject = Math.max(Input._eject, 1);
+    else if (action === 'signal') Input._signal = true;
     else if (skill) Input._skill = skill;
   }
   function isUiTarget(e) {
@@ -101,6 +102,7 @@
       if (e.code === 'Space') { Input._split = Math.max(Input._split, e.ctrlKey || e.altKey ? 4 : (e.shiftKey ? 2 : 1)); e.preventDefault(); return; }
       const k = e.key.toLowerCase();
       if (k === 'w') { Input._eject = Math.max(Input._eject, 1); Input._ejectHeld = true; return; }
+      if (k === 'g') { Input._signal = true; e.preventDefault(); return; }
       if (k === 's') { Input._pauseToggle = true; e.preventDefault(); return; }
       if (k === 'l') { Input._lockMove = !Input._lockMove; Input._lockedAim = null; e.preventDefault(); return; }
       if (SKILL_KEYS[k]) { Input._skill = SKILL_KEYS[k]; return; }
@@ -123,10 +125,11 @@
     const inp = {
       tx: w.x, ty: w.y,
       split: Input._split, splitCount: Input._split, eject: Input._eject > 0, ejectCount: Input._eject, skill: Input._skill,
+      signal: Input._signal,
       adminGrow: Input._adminGrow, adminShrink: Input._adminShrink,
       pauseToggle: Input._pauseToggle, lockMove: Input._lockMove,
     };
-    Input._split = 0; Input._eject = 0; Input._skill = null; Input._pauseToggle = false;
+    Input._split = 0; Input._eject = 0; Input._skill = null; Input._signal = false; Input._pauseToggle = false;
     Input._adminGrow = false; Input._adminShrink = false;
     return inp;
   };
