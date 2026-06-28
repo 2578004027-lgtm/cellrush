@@ -62,6 +62,7 @@
       onPause: (v) => { paused = v; },
       onAdminKey: (key) => { if (transport) transport.adminLogin(key); },
       onBuySkill: (skill) => { if (transport) transport.buySkill(skill); },
+      onBindQQ: (qq) => { if (transport) transport.bindQQ(qq); },
       onAdminTune: (params) => { if (transport) transport.adminTune(params); },
       onChat: (text) => { if (transport) transport.sendChat(text); },
       onBackToMenu: () => { playing = false; paused = false; G.paused = false; if (transport) transport.close(); transport = null; G.Render._lerp.clear(); },

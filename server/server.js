@@ -38,12 +38,13 @@ function hashPassword(pass, salt) {
   return crypto.createHash('sha256').update(salt + ':' + pass).digest('hex');
 }
 function publicAccount(u) {
-  return { name: u.name, diamonds: u.diamonds || 0, unlockedSkills: u.unlockedSkills || [], admin: !!u.admin };
+  return { name: u.name, diamonds: u.diamonds || 0, unlockedSkills: u.unlockedSkills || [], admin: !!u.admin, qq: u.qq || '' };
 }
 function attachAccount(p, u) {
   p.account = u.name;
   p.diamonds = u.diamonds || 0;
   p.unlockedSkills = Array.from(new Set(u.unlockedSkills || []));
+  p.qq = u.qq || '';
 }
 function sendAccount(ws, ok, u, error) {
   if (ws.readyState !== 1) return;
@@ -79,6 +80,23 @@ function loginAccount(p, ws, rawName, rawPass) {
   p.admin = !!u.admin;
   sendAccount(ws, true, u);
 }
+
+function cleanQQ(v) {
+  v = (typeof v === 'string' ? v : '').trim();
+  return /^[1-9][0-9]{4,11}$/.test(v) ? v : '';
+}
+function bindQQ(p, ws, rawQQ) {
+  if (!p.account) return sendAccount(ws, false, null, '\u8bf7\u5148\u767b\u5f55\u8d26\u53f7\u3002');
+  const qq = cleanQQ(rawQQ);
+  if (!qq) return sendAccount(ws, false, accounts.users[p.account] || null, '\u8bf7\u8f93\u5165\u6b63\u786e\u7684 QQ \u53f7\u3002');
+  const u = accounts.users[p.account];
+  if (!u) return sendAccount(ws, false, null, '\u8bf7\u5148\u767b\u5f55\u8d26\u53f7\u3002');
+  u.qq = qq;
+  saveAccounts();
+  attachAccount(p, u);
+  sendAccount(ws, true, u);
+}
+
 function buySkill(p, ws, skill) {
   if (!p.account) return sendAccount(ws, false, null, '\u8bf7\u5148\u767b\u5f55\u3002');
   const def = CFG.skills[skill];
@@ -336,6 +354,8 @@ wss.on('connection', (ws) => {
       if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'adminAuth', ok }));
     } else if (m.t === 'buySkill') {
       buySkill(p, ws, m.skill);
+    } else if (m.t === 'bindQQ') {
+      bindQQ(p, ws, m.qq);
     } else if (m.t === 'adminTune') {
       if (!p.admin) sendAdminTune(ws, false, null, '\u6ca1\u6709\u6743\u9650');
       else sendAdminTune(ws, true, applyAdminTuning(m.params || null));

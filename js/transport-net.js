@@ -225,6 +225,9 @@
   NetTransport.prototype.buySkill = function (skill) {
     if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ t: 'buySkill', skill }));
   };
+  NetTransport.prototype.bindQQ = function (qq) {
+    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ t: 'bindQQ', qq: qq || '' }));
+  };
   NetTransport.prototype.adminTune = function (params) {
     if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ t: 'adminTune', params: params || null }));
   };

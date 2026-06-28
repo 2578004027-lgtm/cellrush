@@ -13,6 +13,8 @@
     this.accountInput = document.getElementById('account');
     this.passwordInput = document.getElementById('password');
     this.accountStatus = document.getElementById('account-status');
+    this.bindQQInput = document.getElementById('bind-qq');
+    this.bindQQBtn = document.getElementById('bind-qq-btn');
     this.skillShop = document.getElementById('skill-shop');
     this.chatPanel = document.getElementById('chat-panel');
     this.chatLog = document.getElementById('chat-log');
@@ -243,6 +245,8 @@
     if (adminReset) adminReset.addEventListener('click', () => { if (this.cbs.onAdminTune) this.cbs.onAdminTune(null); });
     this.setAdminTuning({ tuning: this.localAdminTuning() });
     this.renderSkillShop();
+    if (this.bindQQBtn) this.bindQQBtn.addEventListener('click', () => this.submitQQBind());
+    if (this.bindQQInput) this.bindQQInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); this.submitQQBind(); } });
     this.initChat();
     this.initSettingsTabs();
     this.initRoomStatus();
@@ -357,7 +361,7 @@
     const tabOf = (el) => {
       const id = el.querySelector && el.querySelector('input') ? (el.querySelector('input').id || '') : (el.id || '');
       if (id === 'set-sound') return 'sound';
-      if (id === 'skill-shop' || id === 'account-status' || id === 'set-admin-key' || el.classList.contains('admin-row')) return 'skill';
+      if (id === 'skill-shop' || id === 'account-status' || id === 'bind-qq' || id === 'bind-qq-btn' || el.classList.contains('qq-bind-row') || id === 'set-admin-key' || el.classList.contains('admin-row')) return 'skill';
       if (/visual|names|minimap|game-stats|perf-stats|player-status/.test(id)) return 'visual';
       if (/cursor|enemy|mass|split|autosplit|death|chat|signal|edge/.test(id)) return 'control';
       if (el.classList.contains('set-help')) return 'control';
@@ -477,11 +481,20 @@
     else this.death.classList.remove('hidden');
   };
 
+
+  UI.submitQQBind = function () {
+    const qq = this.bindQQInput ? this.bindQQInput.value.trim() : '';
+    if (!this.account) { if (this.accountStatus) this.accountStatus.textContent = '\u8bf7\u5148\u8f93\u5165\u8d26\u53f7\u5bc6\u7801\u5e76\u5f00\u59cb\u6e38\u620f'; return; }
+    if (!/^[1-9][0-9]{4,11}$/.test(qq)) { if (this.accountStatus) this.accountStatus.textContent = '\u8bf7\u8f93\u5165\u6b63\u786e\u7684 QQ \u53f7'; return; }
+    if (this.cbs.onBindQQ) this.cbs.onBindQQ(qq);
+  };
+
   UI.setAccount = function (msg) {
     if (msg && msg.ok && msg.account) this.account = msg.account;
     if (this.accountStatus) {
-      if (this.account) this.accountStatus.textContent = this.account.name + (this.account.admin ? ' - \u7ba1\u7406\u5458' : '') + ' - \u94bb\u77f3 ' + (this.account.diamonds || 0);
+      if (this.account) this.accountStatus.textContent = this.account.name + (this.account.admin ? ' - \u7ba1\u7406\u5458' : '') + ' - QQ ' + (this.account.qq || '\u672a\u7ed1\u5b9a') + ' - \u94bb\u77f3 ' + (this.account.diamonds || 0);
       else this.accountStatus.textContent = (msg && msg.error) ? msg.error : '\u6e38\u5ba2 - \u94bb\u77f3 99999';
+      if (this.bindQQInput && this.account && this.account.qq) this.bindQQInput.value = this.account.qq;
     }
     this.renderSkillShop();
   };

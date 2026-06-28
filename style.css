@@ -150,6 +150,10 @@ html, body {
   color: #fff; background: var(--blue); cursor: pointer; font-weight: 700;
 }
 .account-status { margin: 12px 0 8px; color: rgba(255,255,255,0.78); font-size: 13px; }
+
+.qq-bind-row { display: flex; gap: 8px; margin: 8px 0 12px; }
+.qq-bind-row input { flex: 1; min-width: 0; height: 32px; border: 0; border-radius: 2px; outline: none; padding: 0 9px; color: var(--text); background: #323232; font-size: 13px; }
+.qq-bind-row button { height: 32px; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; padding: 0 12px; color: #fff; background: var(--blue); cursor: pointer; font-weight: 700; }
 .skill-shop { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 8px 0 12px; }
 .skill-shop .skill-card {
   min-height: 58px; border: 1px solid rgba(255,255,255,0.09); border-radius: 4px; background: rgba(30,30,30,0.75);
