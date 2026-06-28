@@ -1,6 +1,6 @@
 // CellRush - NetTransport: online WebSocket client with buffered snapshot interpolation.
 (function (G) {
-  const EMPTY = { cells: [], food: [], viruses: [], ejected: [], leaderboard: [], players: [], events: [], me: null, world: G.CFG.worldSize };
+  const EMPTY = { cells: [], food: [], viruses: [], ejected: [], leaderboard: [], players: [], events: [], me: null, world: G.CFG.worldSize, stats: { humans: 0, bots: 0, alive: 0 } };
   const INTERP_DELAY = 0.075;
   const MAX_HISTORY = 30;
 
@@ -23,6 +23,7 @@
       events: s.events || [],
       me: s.me ? copyObj(s.me) : null,
       world: s.world || G.CFG.worldSize,
+      stats: s.stats || { humans: 0, bots: 0, alive: 0 },
       _net: stats || null,
     };
   }
@@ -65,6 +66,7 @@
       events: b.events || [],
       me: interpMe(a.me, b.me, t),
       world: b.world || G.CFG.worldSize,
+      stats: b.stats || { humans: 0, bots: 0, alive: 0 },
       _interpolated: true,
       _net: stats || null,
     };

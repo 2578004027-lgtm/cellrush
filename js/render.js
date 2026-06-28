@@ -205,6 +205,7 @@
     if (G.settings.minimap) this._minimap(snap);
     this._skillbar(snap);
     this._hud(snap);
+    this._statsPanels(snap);
     this._feedPanel(dt);
   };
 
@@ -660,31 +661,97 @@
       'DLT ' + (net.deltaCount || 0),
       'BUF ' + (net.bufferMs || 0) + 'ms',
     ];
-    const hx = mobile ? 10 : 62, hy = mobile ? 52 : 10, hw = mobile ? 94 : 116, hh = mobile ? 62 : 99;
-    ctx.fillStyle = 'rgba(37,37,37,0.52)'; this._round(ctx, hx, hy, hw, hh, 2); ctx.fill();
-    rows.forEach((r, i) => {
-      const bad = (i === 0 && fps < 45) || (!mobile && i === 2 && (net.jitterMs || 0) > 35);
-      ctx.fillStyle = bad ? '#ff7a90' : 'rgba(245,245,245,0.92)';
-      ctx.fillText(r, hx + 9, hy + 20 + i * (mobile ? 14 : 17));
-    });
+    if (!(G.settings.perfStats && !mobile)) {
+      const hx = mobile ? 10 : 62, hy = mobile ? 52 : 10, hw = mobile ? 94 : 116, hh = mobile ? 62 : 99;
+      ctx.fillStyle = 'rgba(37,37,37,0.52)'; this._round(ctx, hx, hy, hw, hh, 2); ctx.fill();
+      rows.forEach((r, i) => {
+        const bad = (i === 0 && fps < 45) || (!mobile && i === 2 && (net.jitterMs || 0) > 35);
+        ctx.fillStyle = bad ? '#ff7a90' : 'rgba(245,245,245,0.92)';
+        ctx.fillText(r, hx + 9, hy + 20 + i * (mobile ? 14 : 17));
+      });
+    }
 
     const mass = snap.me ? Math.floor(snap.me.mass) : 0;
     const maxMass = snap.me ? Math.floor(snap.me.maxMass) : 0;
     const sector = snap.me ? this._sectorInfo(snap.me.x, snap.me.y, snap.world || CFG.worldSize).id : 0;
     const dia = snap.me ? Math.floor(snap.me.diamonds || 0) : 0;
-    const text = mobile ? ('\u8d28\u91cf ' + mass + '  \u94bb\u77f3 ' + dia + (sector ? '  S' + sector : '')) : ('\u8d28\u91cf ' + mass + '   \u6700\u9ad8 ' + maxMass + '   \u94bb\u77f3 ' + dia + (sector ? '   \u533a\u57df ' + sector : '') + (snap.me && snap.me.cells > 1 ? '   \u5206\u8eab ' + snap.me.cells : ''));
-    const w = mobile ? Math.min(this.w - 24, Math.max(210, ctx.measureText(text).width + 20)) : Math.max(230, ctx.measureText(text).width + 28);
-    const x = mobile ? (this.w - w) / 2 : (this.w - w) / 2;
-    const y = mobile ? 10 : this.h - 29;
-    ctx.fillStyle = 'rgba(37,37,37,0.52)'; this._round(ctx, x, y, w, mobile ? 24 : 24, 2); ctx.fill();
-    ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.font = (mobile ? '500 13px ' : '500 16px ') + '"Microsoft YaHei", sans-serif';
-    ctx.fillText(text, this.w / 2, y + (mobile ? 17 : 17));
+    if (!G.settings.gameStats) {
+      const text = mobile ? ('\u8d28\u91cf ' + mass + '  \u94bb\u77f3 ' + dia + (sector ? '  S' + sector : '')) : ('\u8d28\u91cf ' + mass + '   \u6700\u9ad8 ' + maxMass + '   \u94bb\u77f3 ' + dia + (sector ? '   \u533a\u57df ' + sector : '') + (snap.me && snap.me.cells > 1 ? '   \u5206\u8eab ' + snap.me.cells : ''));
+      const w = mobile ? Math.min(this.w - 24, Math.max(210, ctx.measureText(text).width + 20)) : Math.max(230, ctx.measureText(text).width + 28);
+      const x = mobile ? (this.w - w) / 2 : (this.w - w) / 2;
+      const y = mobile ? 10 : this.h - 29;
+      ctx.fillStyle = 'rgba(37,37,37,0.52)'; this._round(ctx, x, y, w, mobile ? 24 : 24, 2); ctx.fill();
+      ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.font = (mobile ? '500 13px ' : '500 16px ') + '"Microsoft YaHei", sans-serif';
+      ctx.fillText(text, this.w / 2, y + (mobile ? 17 : 17));
+    }
     if (snap.me && snap.me.admin && !mobile) {
       ctx.textAlign = 'left'; ctx.fillStyle = '#ffd24f'; ctx.font = '700 13px "Microsoft YaHei", sans-serif';
       ctx.fillText('\u7ba1\u7406\u5458\u6a21\u5f0f  [ / ] \u8c03\u8d28\u91cf', 16, this.h - 60);
     }
     ctx.restore();
   };
+  Render._fmtMass = function (n) {
+    n = Math.max(0, Number(n) || 0);
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'm';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+    return '' + Math.floor(n);
+  };
+  Render._statsPanels = function (snap) {
+    if (!snap || !snap.me) return;
+    const ctx = this.ctx, mobile = this.w < 760, net = snap._net || {}, st = snap.stats || {};
+    ctx.save();
+    ctx.textBaseline = 'middle';
+
+    if (G.settings.gameStats) {
+      const cells = snap.me.cells || 1;
+      const score = this._fmtMass(snap.me.maxMass || snap.me.mass || 0);
+      const mass = this._fmtMass(snap.me.mass || 0);
+      const text = '\u5206\u6570 ' + score + '     \u8d28\u91cf ' + mass + '     ' + cells + '/16';
+      ctx.font = (mobile ? '600 12px ' : '600 16px ') + '"Microsoft YaHei", sans-serif';
+      const w = Math.min(this.w - 22, Math.max(mobile ? 210 : 310, ctx.measureText(text).width + 28));
+      const h = mobile ? 22 : 25, x = (this.w - w) / 2, y = this.h - h - (mobile ? 62 : 0);
+      ctx.fillStyle = 'rgba(37,37,37,0.50)'; this._round(ctx, x, y, w, h, 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.textAlign = 'center';
+      ctx.fillText(text, x + w / 2, y + h / 2 + 1);
+    }
+
+    if (G.settings.perfStats && !mobile) {
+      const rows = [
+        ['FPS', this.fps || 0], ['SNAP', (net.snapHz || 0) + 'Hz'], ['JIT', (net.jitterMs || 0) + 'ms'],
+        ['DLT', net.deltaCount || 0], ['BUF', (net.bufferMs || 0) + 'ms'], ['??', (snap.cells || []).length + '/' + (snap.food || []).length]
+      ];
+      const x = this.w - 250, y = this.h - 84, w = 240, h = 66;
+      ctx.fillStyle = 'rgba(37,37,37,0.42)'; this._round(ctx, x, y, w, h, 2); ctx.fill();
+      ctx.font = '600 12px "Microsoft YaHei", sans-serif'; ctx.textAlign = 'left';
+      for (let i = 0; i < rows.length; i++) {
+        const col = i < 3 ? 0 : 1, row = i % 3;
+        const tx = x + 10 + col * 118, ty = y + 13 + row * 19;
+        ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.fillText(rows[i][0] + ':', tx, ty);
+              }
+      for (let i = 0; i < rows.length; i++) {
+        const col = i < 3 ? 0 : 1, row = i % 3;
+        const tx = x + 62 + col * 118, ty = y + 13 + row * 19;
+        const bad = rows[i][0] === 'JIT' && (net.jitterMs || 0) > 45;
+        ctx.fillStyle = bad ? '#ff7a90' : 'rgba(255,255,255,0.94)'; ctx.fillText(String(rows[i][1]), tx, ty);
+      }
+    }
+
+    if (G.settings.playerStatus) {
+      const x = mobile ? 10 : 250, baseY = this.h - (mobile ? 116 : 58);
+      const rows = [
+        ['\u73a9', st.humans || 0], ['AI', st.bots || 0], ['\u603b', st.alive || ((st.humans || 0) + (st.bots || 0))]
+      ];
+      ctx.font = (mobile ? '700 11px ' : '700 13px ') + '"Microsoft YaHei", sans-serif'; ctx.textAlign = 'left';
+      rows.forEach((r, i) => {
+        const y = baseY + i * (mobile ? 17 : 18);
+        ctx.fillStyle = 'rgba(37,37,37,0.42)'; this._round(ctx, x, y - 10, mobile ? 54 : 64, mobile ? 15 : 16, 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.68)'; ctx.fillText(r[0], x + 8, y - 1);
+        ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.fillText(String(r[1]), x + (mobile ? 34 : 42), y - 1);
+      });
+    }
+    ctx.restore();
+  };
+
   Render._feedPanel = function (dt) {
     if (!this._feed.length) return;
     const ctx = this.ctx, mobile = this.w < 760;

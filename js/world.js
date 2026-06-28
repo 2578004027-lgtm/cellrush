@@ -495,7 +495,7 @@
   // Does NOT clear events; the server clears world.events once after broadcasting to all.
   World.prototype.buildSnapshot = function (playerId, view) {
     const w = this, radius = G.radius;
-    const out = { cells: [], food: [], viruses: [], ejected: [], leaderboard: [], players: [], events: [], me: null, world: w.size };
+    const out = { cells: [], food: [], viruses: [], ejected: [], leaderboard: [], players: [], events: [], me: null, world: w.size, stats: { humans: 0, bots: 0, alive: 0 } };
     const inView = (x, y, r) => x + r > view.x0 && x - r < view.x1 && y + r > view.y0 && y - r < view.y1;
 
     for (const f of w.food) if (inView(f.x, f.y, 8)) out.food.push({ id: f.id, x: f.x, y: f.y, r: radius(f.mass), color: f.color });
@@ -503,6 +503,7 @@
     for (const v of w.viruses) { const r = radius(v.mass); if (inView(v.x, v.y, r)) out.viruses.push({ id: v.id, x: v.x, y: v.y, r, mass: v.mass }); }
 
     for (const p of w.players.values()) {
+      if (p.alive) { out.stats.alive++; if (p.isBot) out.stats.bots++; else out.stats.humans++; }
       if (!p.alive) continue;
       let cx = 0, cy = 0, tm = 0;
       for (const c of p.cells) {

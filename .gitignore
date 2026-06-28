@@ -5,3 +5,4 @@ node_modules/
 .DS_Store
 server/data/
 .codex_frames/
+.cwal_har_extract/

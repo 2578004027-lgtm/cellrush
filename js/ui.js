@@ -127,6 +127,9 @@
     const cursorLine = document.getElementById('set-cursor-line');
     const enemyHint = document.getElementById('set-enemy-hint');
     const massMarker = document.getElementById('set-mass-marker');
+    const gameStats = document.getElementById('set-game-stats');
+    const perfStats = document.getElementById('set-perf-stats');
+    const playerStatus = document.getElementById('set-player-status');
     const adminKey = document.getElementById('set-admin-key');
     const adminLogin = document.getElementById('set-admin-login');
     sound.checked = G.settings.sound; names.checked = G.settings.names;
@@ -144,6 +147,9 @@
     bindBool(cursorLine, 'cursorLine');
     bindBool(enemyHint, 'enemyHint');
     bindBool(massMarker, 'massMarker');
+    bindBool(gameStats, 'gameStats');
+    bindBool(perfStats, 'perfStats');
+    bindBool(playerStatus, 'playerStatus');
     const unlockAdmin = () => {
       const key = adminKey ? adminKey.value.trim() : '';
       if (!key) return;
