@@ -212,58 +212,98 @@
     const cells = stack.filter((c) => !c._isVirus && c.r > 8);
     const targets = new Map(), seen = new Set();
     for (const c of cells) seen.add(c.id);
+
+    const addContact = (c, angle, amt) => {
+      let arr = targets.get(c.id);
+      if (!arr) { arr = []; targets.set(c.id, arr); }
+      arr.push({ angle, amt });
+    };
+
     for (let i = 0; i < cells.length; i++) {
       const a = cells[i];
       for (let j = i + 1; j < cells.length; j++) {
         const b = cells[j];
         const dx = b.x - a.x, dy = b.y - a.y;
         const d = Math.hypot(dx, dy) || 0.001;
-        const near = (a.r + b.r) * 1.06;
+        const near = (a.r + b.r) * 1.035;
         if (d >= near) continue;
-        const pressure = U.clamp((near - d) / Math.max(10, Math.min(a.r, b.r) * 0.9), 0, 1);
+        const minR = Math.max(8, Math.min(a.r, b.r));
+        const overlap = near - d;
+        const pressure = U.clamp(overlap / Math.max(12, minR * 0.72), 0, 1);
         const rel = Math.hypot((a.vx || 0) - (b.vx || 0), (a.vy || 0) - (b.vy || 0));
-        const amt = U.clamp(pressure * 0.22 + Math.min(0.08, rel / 9000), 0, 0.28);
+        const amt = U.clamp(pressure * 0.34 + Math.min(0.07, rel / 11000), 0, 0.38);
+        if (amt <= 0.012) continue;
         const ang = Math.atan2(dy, dx);
-        const put = (c, angle) => {
-          const old = targets.get(c.id);
-          if (!old || amt > old.amt) targets.set(c.id, { amt, angle });
-        };
-        put(a, ang); put(b, ang + Math.PI);
+        addContact(a, ang, amt);
+        addContact(b, ang + Math.PI, amt);
       }
     }
+
     const out = new Map();
     const step = Math.min(0.05, Math.max(0.001, dt || 1 / 60));
     for (const c of cells) {
-      const prev = this._squeeze.get(c.id) || { amt: 0, vel: 0, angle: 0, wobble: 0 };
-      const target = targets.get(c.id) || { amt: 0, angle: prev.angle };
-      const accel = (target.amt - prev.amt) * 80 - prev.vel * 12;
+      const raw = (targets.get(c.id) || []).sort((a, b) => b.amt - a.amt).slice(0, 4);
+      const targetAmt = raw.length ? raw[0].amt : 0;
+      const prev = this._squeeze.get(c.id) || { amp: 0, vel: 0, angle: 0, wobble: 0 };
+      const accel = (targetAmt - prev.amp) * 130 - prev.vel * 18;
       const vel = prev.vel + accel * step;
-      const amt = U.clamp(prev.amt + vel * step, 0, 0.32);
-      const angle = target.amt > 0.01 ? target.angle : prev.angle;
-      const wobble = (prev.wobble || 0) + step * (target.amt > 0.01 ? 18 : 10);
-      const sq = { amt, vel, angle, wobble };
+      const amp = U.clamp(prev.amp + vel * step, 0, 0.42);
+      const angle = raw.length ? raw[0].angle : prev.angle;
+      const wobble = (prev.wobble || 0) + step * (raw.length ? 22 : 13);
+      const scale = targetAmt > 0.0001 ? amp / targetAmt : 0;
+      const contacts = raw.map((r) => ({ angle: r.angle, amt: U.clamp(r.amt * scale, 0, 0.42) }));
+      const sq = { amp, vel, angle, wobble, contacts };
       this._squeeze.set(c.id, sq);
-      if (amt > 0.006 || Math.abs(vel) > 0.01) out.set(c.id, sq);
+      if (amp > 0.004 || Math.abs(vel) > 0.012) out.set(c.id, sq);
     }
     for (const id of this._squeeze.keys()) if (!seen.has(id)) this._squeeze.delete(id);
     return out;
   };
 
-  Render._cell = function (ctx, c, sq) {
+  Render._cellPath = function (ctx, c, sq) {
+    if (!sq || !sq.contacts || !sq.contacts.length || sq.amp <= 0.006) {
+      ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, U.TAU); return;
+    }
+    const pts = [];
+    const n = c.r > 70 ? 34 : 26;
+    const wob = Math.sin(sq.wobble || 0);
+    for (let i = 0; i < n; i++) {
+      const th = U.TAU * i / n;
+      let deform = 0;
+      for (const contact of sq.contacts) {
+        const d = Math.atan2(Math.sin(th - contact.angle), Math.cos(th - contact.angle));
+        const ad = Math.abs(d);
+        const front = Math.exp(-(ad * ad) / 0.20);                    // dent at contact point
+        const side = Math.exp(-Math.pow(ad - Math.PI / 2, 2) / 0.34); // soft sideways bulge
+        const back = Math.exp(-Math.pow(Math.PI - ad, 2) / 0.55);     // tiny recoil at back
+        deform += contact.amt * (-0.36 * front + 0.13 * side + 0.035 * back);
+      }
+      deform += Math.sin(th * 3 + (sq.wobble || 0)) * sq.amp * 0.018;
+      deform += wob * sq.amp * 0.012;
+      const rr = c.r * U.clamp(1 + deform, 0.68, 1.18);
+      pts.push({ x: c.x + Math.cos(th) * rr, y: c.y + Math.sin(th) * rr });
+    }
     ctx.beginPath();
-    if (sq && sq.amt > 0.01) {
-      const pulse = 1 + Math.sin(sq.wobble || 0) * sq.amt * 0.10;
-      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(sq.angle);
-      ctx.ellipse(0, 0, c.r * (1 - sq.amt * 0.95), c.r * (1 + sq.amt * 0.62) * pulse, 0, 0, U.TAU);
-      ctx.restore();
-    } else ctx.arc(c.x, c.y, c.r, 0, U.TAU);
+    for (let i = 0; i < pts.length; i++) {
+      const p0 = pts[i], p1 = pts[(i + 1) % pts.length];
+      const mx = (p0.x + p1.x) * 0.5, my = (p0.y + p1.y) * 0.5;
+      if (i === 0) ctx.moveTo(mx, my);
+      ctx.quadraticCurveTo(p1.x, p1.y, (p1.x + pts[(i + 2) % pts.length].x) * 0.5, (p1.y + pts[(i + 2) % pts.length].y) * 0.5);
+    }
+    ctx.closePath();
+  };
+
+  Render._cell = function (ctx, c, sq) {
+    this._cellPath(ctx, c, sq);
     ctx.fillStyle = c.color; ctx.fill();
     const skin = G.settings.visualSkins ? this._skinImage(c.skin) : null;
     if (skin) {
       ctx.save();
+      this._cellPath(ctx, c, sq);
       ctx.clip();
       ctx.drawImage(skin, c.x - c.r, c.y - c.r, c.r * 2, c.r * 2);
       ctx.restore();
+      this._cellPath(ctx, c, sq);
     }
     ctx.lineWidth = Math.max(2, c.r * 0.05);
     ctx.strokeStyle = c.dark || 'rgba(0,0,0,0.25)'; ctx.stroke();
