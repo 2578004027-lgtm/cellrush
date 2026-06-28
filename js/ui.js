@@ -394,7 +394,7 @@
 
   UI.showDeath = function (stats, survived) {
     this.deathStats.innerHTML =
-      '\u6700\u9ad8\u8d28\u91cf <b>' + Math.floor(stats.maxMass || 0) + '</b><br>\u5b58\u6d3b <b>' + survived.toFixed(0) + '</b> \u79d2<br>\u94bb\u77f3 +<b>' + Math.floor(stats.diamondsEarned || 0) + '</b>';
+      '\u6700\u9ad8\u8d28\u91cf <b>' + Math.floor(stats.maxMass || 0) + '</b><br>\u5b58\u6d3b <b>' + survived.toFixed(0) + '</b> \u79d2<br>\u51fb\u6740 <b>' + Math.floor(stats.kills || 0) + '</b>' + (stats.killedBy ? '<br>\u51fb\u8d25\u4f60\u7684\u4eba <b>' + this.escapeHtml(stats.killedBy) + '</b>' : '') + '<br>\u94bb\u77f3 +<b>' + Math.floor(stats.diamondsEarned || 0) + '</b>';
     if (G.settings.deathMenu) { this.menu.classList.remove('hidden'); this.death.classList.add('hidden'); }
     else this.death.classList.remove('hidden');
   };

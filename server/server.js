@@ -360,7 +360,7 @@ setInterval(() => {
       const survived = world.time - p.bornAt;
       const reward = Math.min(35, Math.max(1, Math.floor((p.maxMass || 0) / 120) + Math.floor(survived / 60)));
       const earned = awardDiamonds(p, reward);
-      if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'dead', maxMass: p.maxMass, survived, diamondsEarned: earned, diamonds: p.diamonds || 0 }));
+      if (ws.readyState === 1) ws.send(JSON.stringify({ t: 'dead', maxMass: p.maxMass, survived, kills: p.kills || 0, killedBy: p.killedBy || '', diamondsEarned: earned, diamonds: p.diamonds || 0 }));
       systemChat((p.name || 'Player') + ' \u88ab\u5403\u6389\u4e86');
     }
   }

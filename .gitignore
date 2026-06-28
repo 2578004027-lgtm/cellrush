@@ -6,3 +6,4 @@ node_modules/
 server/data/
 .codex_frames/
 .cwal_har_extract/
+.video_frames/

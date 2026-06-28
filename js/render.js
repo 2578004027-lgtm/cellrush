@@ -210,6 +210,7 @@
     this._skillbar(snap);
     this._hud(snap);
     this._statsPanels(snap);
+    this._roomBar(snap);
     this._pauseOverlay();
     this._feedPanel(dt);
   };
@@ -861,6 +862,32 @@
     if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
     return '' + Math.floor(n);
   };
+
+  Render._fmtTime = function (sec) {
+    sec = Math.max(0, Math.floor(Number(sec) || 0));
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  };
+  Render._roomBar = function (snap) {
+    if (!snap || !snap.me || this.w < 760) return;
+    const ctx = this.ctx, st = snap.stats || {}, me = snap.me;
+    const left = '\u9ed8\u8ba4\u623f\u95f4   \u5b58\u6d3b ' + (st.alive || 0) + '   \u73a9\u5bb6 ' + (st.humans || 0) + '   AI ' + (st.bots || 0);
+    const right = me.spectator ? '\u89c2\u6218\u6a21\u5f0f' : ('\u65f6\u95f4 ' + this._fmtTime(me.aliveTime || 0) + '   \u51fb\u6740 ' + (me.kills || 0));
+    ctx.save();
+    ctx.font = '700 12px "Microsoft YaHei", sans-serif';
+    const text = left + '        ' + right;
+    const w = Math.min(this.w - 310, Math.max(360, ctx.measureText(text).width + 28));
+    const x = (this.w - w) / 2, y = 10, h = 24;
+    ctx.fillStyle = 'rgba(37,37,37,0.38)'; this._round(ctx, x, y, w, h, 2); ctx.fill();
+    const g = ctx.createLinearGradient(x, y, x + w, y);
+    g.addColorStop(0, 'rgba(22,141,232,0.22)'); g.addColorStop(0.55, 'rgba(255,255,255,0.02)'); g.addColorStop(1, 'rgba(255,144,0,0.18)');
+    ctx.fillStyle = g; this._round(ctx, x, y, w, h, 2); ctx.fill();
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,0.78)'; ctx.fillText(left, x + 12, y + h / 2 + 1);
+    ctx.textAlign = 'right'; ctx.fillStyle = me.spectator ? '#ffd250' : '#7cffb0'; ctx.fillText(right, x + w - 12, y + h / 2 + 1);
+    ctx.restore();
+  };
+
   Render._statsPanels = function (snap) {
     if (!snap || !snap.me) return;
     const ctx = this.ctx, mobile = this.w < 760, net = snap._net || {}, st = snap.stats || {};
@@ -874,7 +901,7 @@
       const lock = (G.Input && G.Input._lockMove) ? '     \u9501\u5b9a' : '';
       const specName = snap.me.spectator ? (snap.me.targetName || '\u7b2c\u4e00\u540d') : '';
       const specRank = snap.me.spectator && snap.me.targetRank ? ('#' + snap.me.targetRank + ' ') : '';
-      const text = snap.me.spectator ? ('\u89c2\u6218\u4e2d     ' + specRank + specName + '     ' + mass + '     \u2190/\u2192 \u5207\u6362') : ('\u5206\u6570 ' + score + '     \u8d28\u91cf ' + mass + '     ' + cells + '/16' + lock);
+      const text = snap.me.spectator ? ('\u89c2\u6218\u4e2d     ' + specRank + specName + '     ' + mass + '     \u2190/\u2192 \u5207\u6362') : ('\u5206\u6570 ' + score + '     \u8d28\u91cf ' + mass + '     ' + cells + '/16     K ' + (snap.me.kills || 0) + '     ' + this._fmtTime(snap.me.aliveTime || 0) + lock);
       ctx.font = (mobile ? '600 12px ' : '600 16px ') + '"Microsoft YaHei", sans-serif';
       const w = Math.min(this.w - 22, Math.max(mobile ? 210 : 310, ctx.measureText(text).width + 28));
       const h = mobile ? 22 : 25, x = (this.w - w) / 2, y = this.h - h - (mobile ? 62 : 0);

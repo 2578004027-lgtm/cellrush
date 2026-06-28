@@ -42,7 +42,7 @@
       isBot: !!opts.isBot,
       spawnMass: opts.startMass || (opts.isBot ? (CFG.botStartMass || CFG.startMass) : CFG.startMass),
       cells: [], input: { tx: 0, ty: 0, split: false, eject: false },
-      alive: false, maxMass: 0, bornAt: this.time, ai: {},
+      alive: false, maxMass: 0, bornAt: this.time, kills: 0, killedBy: '', ai: {},
       account: '', diamonds: 99999, unlockedSkills: [], poisonUntil: 0, poisonRate: 0, silenceUntil: 0, _growth: null, _magnetUntil: 0, _poisonBomb: null,
       cd: { dash: 0, shield: 0, magnet: 0, merge: 0, revenge: 0, grow: 0, thorn: 0, poison: 0, silence: 0 },   // time when each skill is ready again
       fx: { dash: 0, shield: 0, magnet: 0, merge: 0, revenge: 0, grow: 0, thorn: 0, poison: 0, silence: 0 },   // time until each effect ends
@@ -57,6 +57,7 @@
     const spawnMass = p.spawnMass || CFG.startMass;
     p.maxMass = spawnMass;
     p.bornAt = this.time;
+    p.kills = 0; p.killedBy = '';
     const x = U.rand(this.size * 0.1, this.size * 0.9), y = U.rand(this.size * 0.1, this.size * 0.9);
     p.cells = [this._newCell(p, x, y, spawnMass)];
     p.input.tx = x; p.input.ty = y;
@@ -431,6 +432,7 @@
     H.clear();
     for (const c of cells) H.insert(c);
     const dead = new Set();
+    const killCredit = new Map();
     const converted = new Set();
     let virusPopped = false;
     for (const c of cells) {
@@ -457,12 +459,20 @@
         const eatOverlap = splitAttack ? (typeof CFG.splitEatOverlap === 'number' ? CFG.splitEatOverlap : 0.12) : CFG.eatOverlap;
         if (c.mass >= t.mass * eatRatio && U.dist(c.x, c.y, t.x, t.y) < r - radius(t.mass) * eatOverlap) {
           if (splitAttack && tp && this.time < (tp.fx.revenge || 0) && !(cp && cp.admin)) { converted.add(c.id); this._convertCell(c, cp, tp, CFG.skills.revenge.color); return; }
-          dead.add(t.id); c.mass += t.mass;
+          dead.add(t.id); if (cp && tp && cp.id !== tp.id) killCredit.set(tp.id, cp.id); c.mass += t.mass;
         }
       });
     }
     if (dead.size) {
-      for (const p of this.players.values()) if (p.alive) p.cells = p.cells.filter((c) => !dead.has(c.id));
+      for (const p of this.players.values()) if (p.alive) {
+        const hadCells = p.cells.length;
+        p.cells = p.cells.filter((c) => !dead.has(c.id));
+        if (hadCells && p.cells.length === 0) {
+          const kid = killCredit.get(p.id);
+          const kp = kid ? this.players.get(kid) : null;
+          if (kp && kp !== p) { kp.kills = (kp.kills || 0) + 1; p.killedBy = kp.name || 'Player'; }
+        }
+      }
       this._lastEaten = dead;     // for event hooks (audio)
     }
     if (virusPopped) {
@@ -543,12 +553,12 @@
       const targetName = lead ? (lead.name || (lead.p && lead.p.name) || '') : '';
       const targetRank = lead ? (lead.rank || 1) : 0;
       const targetCells = lead ? (lead.cells || (lead.p && lead.p.cells && lead.p.cells.length) || 0) : 0;
-      out.me = { x: lead ? lead.x : w.size / 2, y: lead ? lead.y : w.size / 2, mass: lead ? lead.mass : CFG.startMass, maxMass: lead ? lead.mass : 0, cells: 0, admin: false, spectator: true, account: '', diamonds: 0, skills: [], specials: [], targetName, targetRank, targetCells };
+      out.me = { x: lead ? lead.x : w.size / 2, y: lead ? lead.y : w.size / 2, mass: lead ? lead.mass : CFG.startMass, maxMass: lead ? lead.mass : 0, cells: 0, admin: false, spectator: true, account: '', diamonds: 0, skills: [], specials: [], targetName, targetRank, targetCells, aliveTime: 0, kills: 0 };
     } else if (me && me.alive && me.cells.length) {
       let cx = 0, cy = 0, tm = 0;
       for (const c of me.cells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
       out.me = { x: cx / tm, y: cy / tm, mass: tm, maxMass: me.maxMass, cells: me.cells.length, admin: me.admin, spectator: false,
-        account: me.account || '', diamonds: me.diamonds || 99999 };
+        account: me.account || '', diamonds: me.diamonds || 99999, aliveTime: Math.max(0, w.time - (me.bornAt || w.time)), kills: me.kills || 0, killedBy: me.killedBy || '' };
       out.me.skills = CFG.skillOrder.map((k) => {
         const def = CFG.skills[k];
         const unlocked = !def.special || me.admin || (me.unlockedSkills || []).includes(k);
