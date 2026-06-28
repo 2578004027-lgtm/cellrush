@@ -209,14 +209,47 @@
     this._feedPanel(dt);
   };
 
+  Render._splitReach = function (mass) {
+    const r = G.radius(mass / 2);
+    const launch = U.clamp(
+      Math.max(CFG.splitImpulse, r * (CFG.splitLaunchRadii || 1.15) * CFG.frictionPerSec),
+      CFG.splitImpulse,
+      CFG.splitImpulseMax || 2400
+    );
+    const sep = r * (CFG.splitStartSeparation || 2.03);
+    return sep + launch / Math.max(1, CFG.frictionPerSec) * 0.82;
+  };
+  Render._splitPreview = function (ctx, cell, input) {
+    if (!G.settings.splitPreview || !input || !cell || cell.mass < (CFG.splitMin || 35)) return;
+    const scale = this.camera.scale || 1;
+    const dx = input.tx - cell.x, dy = input.ty - cell.y, d = Math.hypot(dx, dy) || 1;
+    const ca = dx / d, sa = dy / d;
+    const half = cell.mass / 2, r = G.radius(half), reach = this._splitReach(cell.mass);
+    const ex = cell.x + ca * reach, ey = cell.y + sa * reach;
+    ctx.save();
+    ctx.lineWidth = Math.max(1.5 / scale, 2);
+    ctx.strokeStyle = 'rgba(255,210,80,0.58)';
+    ctx.setLineDash([14 / scale, 9 / scale]);
+    ctx.beginPath(); ctx.moveTo(cell.x, cell.y); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.18; ctx.fillStyle = '#ffd250';
+    ctx.beginPath(); ctx.arc(ex, ey, r, 0, U.TAU); ctx.fill();
+    ctx.globalAlpha = 0.75; ctx.strokeStyle = 'rgba(255,210,80,0.92)'; ctx.lineWidth = Math.max(2 / scale, 2);
+    ctx.beginPath(); ctx.arc(ex, ey, r, 0, U.TAU); ctx.stroke();
+    ctx.restore();
+  };
+
   Render._assists = function (ctx, snap, input) {
     if (!snap || !snap.me) return;
     const meCells = (snap.cells || []).filter((c) => c.isMe);
     if (!meCells.length) return;
     let cx = 0, cy = 0, tm = 0, myMax = 0;
-    for (const c of meCells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; if (c.mass > myMax) myMax = c.mass; }
+    let mainCell = meCells[0];
+    for (const c of meCells) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; if (c.mass > myMax) { myMax = c.mass; mainCell = c; } }
     cx /= tm; cy /= tm;
     const scale = this.camera.scale || 1;
+
+    this._splitPreview(ctx, mainCell, input);
 
     if (G.settings.cursorLine && input) {
       const dx = input.tx - cx, dy = input.ty - cy, d = Math.hypot(dx, dy);
@@ -229,6 +262,38 @@
         ctx.setLineDash([]);
         ctx.fillStyle = 'rgba(255,255,255,0.72)';
         ctx.beginPath(); ctx.arc(input.tx, input.ty, Math.max(3 / scale, 5), 0, U.TAU); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    if (G.settings.autosplitAlert) {
+      let alert = null;
+      for (const mine of meCells) {
+        for (const e of snap.cells || []) {
+          if (e.isMe || e.mass <= 0) continue;
+          const canSplitEat = (e.mass / 2) >= mine.mass * (CFG.splitEatRatio || CFG.eatRatio || 1.2);
+          if (!canSplitEat || e.mass < (CFG.splitMin || 35)) continue;
+          const dist = Math.hypot(e.x - mine.x, e.y - mine.y);
+          const reach = this._splitReach(e.mass) + e.r + mine.r * 0.35;
+          if (dist < reach) {
+            const margin = reach - dist;
+            if (!alert || margin > alert.margin) alert = { mine, e, margin };
+          }
+        }
+      }
+      if (alert) {
+        ctx.save();
+        const a = 0.55 + 0.22 * Math.sin((performance.now() || 0) / 90);
+        ctx.lineWidth = Math.max(3 / scale, alert.mine.r * 0.055);
+        ctx.strokeStyle = 'rgba(255,80,105,' + a.toFixed(2) + ')';
+        ctx.beginPath(); ctx.arc(alert.mine.x, alert.mine.y, alert.mine.r + Math.max(16 / scale, alert.mine.r * 0.16), 0, U.TAU); ctx.stroke();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const fs = Math.max(12 / scale, Math.min(20 / scale, alert.mine.r * 0.22));
+        ctx.font = '900 ' + fs + 'px "Microsoft YaHei", sans-serif'; ctx.lineWidth = Math.max(2 / scale, fs * 0.16);
+        ctx.strokeStyle = 'rgba(0,0,0,0.68)'; ctx.fillStyle = 'rgba(255,92,118,0.96)';
+        const txt = '\u5206\u88c2\u5371\u9669';
+        ctx.strokeText(txt, alert.mine.x, alert.mine.y - alert.mine.r - Math.max(24 / scale, alert.mine.r * 0.22));
+        ctx.fillText(txt, alert.mine.x, alert.mine.y - alert.mine.r - Math.max(24 / scale, alert.mine.r * 0.22));
         ctx.restore();
       }
     }
@@ -718,7 +783,7 @@
     if (G.settings.perfStats && !mobile) {
       const rows = [
         ['FPS', this.fps || 0], ['SNAP', (net.snapHz || 0) + 'Hz'], ['JIT', (net.jitterMs || 0) + 'ms'],
-        ['DLT', net.deltaCount || 0], ['BUF', (net.bufferMs || 0) + 'ms'], ['??', (snap.cells || []).length + '/' + (snap.food || []).length]
+        ['DLT', net.deltaCount || 0], ['BUF', (net.bufferMs || 0) + 'ms'], ['\u5b9e\u4f53', (snap.cells || []).length + '/' + (snap.food || []).length]
       ];
       const x = this.w - 250, y = this.h - 84, w = 240, h = 66;
       ctx.fillStyle = 'rgba(37,37,37,0.42)'; this._round(ctx, x, y, w, h, 2); ctx.fill();

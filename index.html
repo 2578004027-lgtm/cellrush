@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>CellRush</title>
 <link rel="icon" href="data:," />
-<link rel="stylesheet" href="style.css?v=20260628-20" />
+<link rel="stylesheet" href="style.css?v=20260628-21" />
 <script>
 window.addEventListener('error', function (e) {
   var box = document.getElementById('client-error-overlay');
@@ -67,6 +67,7 @@ window.addEventListener('error', function (e) {
       <div class="avatar-preview" id="avatar-preview"></div>
       <input id="name" class="menu-input name-input" maxlength="14" placeholder="&#26165;&#31216;" autocomplete="off" spellcheck="false" />
       <input id="skin-url" class="menu-input skin-input" maxlength="256" placeholder="&#30382;&#32932;&#22270;&#29255;&#22320;&#22336;&#25110;&#26412;&#22320;&#36335;&#24452;" autocomplete="off" spellcheck="false" />
+      <div id="profiles" class="profiles" aria-label="profiles"></div>
       <input id="account" class="menu-input account-input" maxlength="16" placeholder="&#36134;&#21495;" autocomplete="username" spellcheck="false" />
       <input id="password" class="menu-input password-input" maxlength="40" placeholder="&#23494;&#30721;" type="password" autocomplete="current-password" spellcheck="false" />
       <button id="play" class="menu-button play-button">&#24320;&#22987;&#28216;&#25103;</button>
@@ -128,6 +129,8 @@ window.addEventListener('error', function (e) {
       <label class="row"><span>&#28216;&#25103;&#29366;&#24577;<small>&#24213;&#37096;&#20013;&#38388;&#65306;&#20998;&#25968;/&#24635;&#37327;/&#20998;&#36523;</small></span><input type="checkbox" id="set-game-stats" /></label>
       <label class="row"><span>&#24615;&#33021;&#29366;&#24577;<small>&#21491;&#19979;&#65306;FPS / SNAP / JIT</small></span><input type="checkbox" id="set-perf-stats" /></label>
       <label class="row"><span>&#29609;&#23478;&#29366;&#24577;<small>&#24038;&#19979;&#65306;&#22312;&#32447;/&#20154;&#26426;/&#24635;&#25968;</small></span><input type="checkbox" id="set-player-status" /></label>
+      <label class="row"><span>&#20998;&#35010;&#39044;&#21028;<small>&#26174;&#31034;&#24403;&#21069;&#26368;&#22823;&#29699;&#20998;&#35010;&#33853;&#28857;</small></span><input type="checkbox" id="set-split-preview" /></label>
+      <label class="row"><span>&#33258;&#21160;&#20998;&#35010;&#35686;&#25253;<small>&#25932;&#20154;&#21487;&#33021;&#20998;&#35010;&#21507;&#20320;&#26102;&#25552;&#31034;</small></span><input type="checkbox" id="set-autosplit-alert" /></label>
       <div class="row admin-row"><span>&#31649;&#29702;&#21592;&#23494;&#38053;<small>&#26381;&#21153;&#31471;&#39564;&#35777;</small></span><div class="admin-auth"><input id="set-admin-key" type="password" autocomplete="off" spellcheck="false" /><button id="set-admin-login" type="button">&#35299;&#38145;</button></div></div>
       <div id="account-status" class="account-status">&#28216;&#23458; - &#38075;&#30707; 99999</div>
       <div id="skill-shop" class="skill-shop"></div>
@@ -165,14 +168,14 @@ window.addEventListener('error', function (e) {
     </div>
   </div>
 </div>
-<script src="js/config.js?v=20260628-20"></script>
-<script src="js/util.js?v=20260628-20"></script>
-<script src="js/world.js?v=20260628-20"></script>
-<script src="js/input.js?v=20260628-20"></script>
-<script src="js/audio.js?v=20260628-20"></script>
-<script src="js/render.js?v=20260628-20"></script>
-<script src="js/ui.js?v=20260628-20"></script>
-<script src="js/transport-net.js?v=20260628-20"></script>
-<script src="js/main.js?v=20260628-20"></script>
+<script src="js/config.js?v=20260628-21"></script>
+<script src="js/util.js?v=20260628-21"></script>
+<script src="js/world.js?v=20260628-21"></script>
+<script src="js/input.js?v=20260628-21"></script>
+<script src="js/audio.js?v=20260628-21"></script>
+<script src="js/render.js?v=20260628-21"></script>
+<script src="js/ui.js?v=20260628-21"></script>
+<script src="js/transport-net.js?v=20260628-21"></script>
+<script src="js/main.js?v=20260628-21"></script>
 </body>
 </html>

@@ -16,6 +16,7 @@
     this.skillShop = document.getElementById('skill-shop');
     this.account = null;
     this.skinsEl = document.getElementById('skins');
+    this.profilesEl = document.getElementById('profiles');
     this.preview = document.getElementById('avatar-preview');
     this.playBtn = document.getElementById('play');
     this.respawnBtn = document.getElementById('respawn');
@@ -84,14 +85,69 @@
       const ln = localStorage.getItem('cr_name'); if (ln) this.nameInput.value = ln;
       const la = localStorage.getItem('cr_account'); if (la && this.accountInput) this.accountInput.value = la;
       let skin = localStorage.getItem('cr_skin');
-      if (skin && skin.indexOf('cwal.io/skins/') >= 0) skin = '/assets/skins/' + skin.split('/').pop().replace('.png', '.svg').replace('h.svg', 'halo.svg').replace('w.svg', 'star.svg');
+      if (skin && skin.indexOf('cwal.io/skins/') >= 0) {
+        const fn = skin.split('/').pop().replace('h.png', 'halo.png').replace('w.png', 'star.png');
+        skin = '/assets/skins/cwal/' + fn;
+      }
       if (skin) { this.selectedSkin = skin; this.skinInput.value = skin; }
     } catch (e) { /* localStorage may be blocked */ }
     if (this.selectedSkin) {
       const saved = this.skinsEl.querySelector('[data-skin="' + this.selectedSkin.replace(/"/g, '\\"') + '"]');
       if (saved) selectSkinEl(saved);
     }
-    this.skinInput.addEventListener('input', applyPreview);
+    const profileDefaults = () => {
+      const skins = (CFG.skinPresets || []).filter(Boolean);
+      return [0, 1, 2, 3].map((i) => ({ name: 'Profile' + (i + 1), skin: skins[i] || '', hue: CFG.hues[i % CFG.hues.length] }));
+    };
+    const loadProfiles = () => {
+      try {
+        const v = JSON.parse(localStorage.getItem('cr_profiles') || 'null');
+        if (Array.isArray(v) && v.length >= 4) return v.slice(0, 4);
+      } catch (e) { /* ignore */ }
+      return profileDefaults();
+    };
+    const saveProfiles = (arr) => { try { localStorage.setItem('cr_profiles', JSON.stringify(arr)); } catch (e) { /* ignore */ } };
+    this.profiles = loadProfiles();
+    try { this.profileIndex = Math.max(0, Math.min(3, Number(localStorage.getItem('cr_profile_index') || 0))); } catch (e) { this.profileIndex = 0; }
+    const applyProfile = (i) => {
+      const p = this.profiles[i]; if (!p) return;
+      this.profileIndex = i;
+      try { localStorage.setItem('cr_profile_index', String(i)); } catch (e) { /* ignore */ }
+      if (p.name) this.nameInput.value = p.name;
+      this.selectedHue = typeof p.hue === 'number' ? p.hue : this.selectedHue;
+      this.selectedSkin = p.skin || '';
+      this.skinInput.value = this.selectedSkin;
+      const found = this.skinsEl ? this.skinsEl.querySelector('[data-skin="' + this.selectedSkin.replace(/"/g, '\\"') + '"]') : null;
+      selectSkinEl(found);
+      applyPreview();
+      renderProfiles();
+    };
+    const saveProfile = () => {
+      const i = this.profileIndex || 0;
+      this.profiles[i] = { name: (this.nameInput.value || ('Profile' + (i + 1))).trim().slice(0, 14), skin: (this.skinInput.value || this.selectedSkin || '').trim(), hue: this.selectedHue };
+      saveProfiles(this.profiles);
+      renderProfiles();
+    };
+    const renderProfiles = () => {
+      if (!this.profilesEl) return;
+      this.profilesEl.innerHTML = '';
+      this.profiles.forEach((p, i) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'profile-btn' + (i === this.profileIndex ? ' active' : '');
+        b.textContent = (i + 1) + ' ' + (p.name || ('P' + (i + 1)));
+        if (p.skin) b.style.backgroundImage = 'linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),url("' + safeUrl(p.skin) + '")';
+        b.addEventListener('click', () => applyProfile(i));
+        this.profilesEl.appendChild(b);
+      });
+      const save = document.createElement('button');
+      save.type = 'button'; save.className = 'profile-save'; save.textContent = '\u4fdd\u5b58';
+      save.title = '\u4fdd\u5b58\u5f53\u524d\u6635\u79f0/\u76ae\u80a4\u5230\u5f53\u524d\u6863\u6848';
+      save.addEventListener('click', saveProfile);
+      this.profilesEl.appendChild(save);
+    };
+    this.skinInput.addEventListener('input', () => { this.selectedSkin = this.skinInput.value.trim(); applyPreview(); });
+    if (this.nameInput) this.nameInput.addEventListener('input', renderProfiles);
+    renderProfiles();
     applyPreview();
 
     const go = (fn) => {
@@ -130,6 +186,8 @@
     const gameStats = document.getElementById('set-game-stats');
     const perfStats = document.getElementById('set-perf-stats');
     const playerStatus = document.getElementById('set-player-status');
+    const splitPreview = document.getElementById('set-split-preview');
+    const autosplitAlert = document.getElementById('set-autosplit-alert');
     const adminKey = document.getElementById('set-admin-key');
     const adminLogin = document.getElementById('set-admin-login');
     sound.checked = G.settings.sound; names.checked = G.settings.names;
@@ -150,6 +208,8 @@
     bindBool(gameStats, 'gameStats');
     bindBool(perfStats, 'perfStats');
     bindBool(playerStatus, 'playerStatus');
+    bindBool(splitPreview, 'splitPreview');
+    bindBool(autosplitAlert, 'autosplitAlert');
     const unlockAdmin = () => {
       const key = adminKey ? adminKey.value.trim() : '';
       if (!key) return;

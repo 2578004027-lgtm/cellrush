@@ -110,7 +110,7 @@ G.CFG = {
 };
 
 // runtime, user-toggleable settings (changed in the in-game settings menu)
-G.settings = { sound: true, names: true, minimap: true, admin: false, visualSkins: false, visualStatus: false, visualFx: false, visualAllNames: false, visualSqueeze: true, cursorLine: true, enemyHint: true, massMarker: true, gameStats: true, perfStats: true, playerStatus: true };
+G.settings = { sound: true, names: true, minimap: true, admin: false, visualSkins: false, visualStatus: false, visualFx: false, visualAllNames: false, visualSqueeze: true, cursorLine: true, enemyHint: true, massMarker: true, gameStats: true, perfStats: true, playerStatus: true, splitPreview: true, autosplitAlert: true };
 
 // WebSocket server. url '' = auto (same origin the page is served from).
 // For a separately-hosted server, set e.g. 'wss://your-host.onrender.com'.
