@@ -207,6 +207,7 @@
     this._skillbar(snap);
     this._hud(snap);
     this._statsPanels(snap);
+    this._pauseOverlay();
     this._feedPanel(dt);
   };
 
@@ -816,6 +817,23 @@
         ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.fillText(String(r[1]), x + (mobile ? 34 : 42), y - 1);
       });
     }
+    ctx.restore();
+  };
+
+  Render._pauseOverlay = function () {
+    if (!G.paused) return;
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.24)';
+    ctx.fillRect(0, 0, this.w, this.h);
+    const text = '\u5df2\u6682\u505c   S \u7ee7\u7eed';
+    ctx.font = '800 ' + (this.w < 760 ? 18 : 26) + 'px "Microsoft YaHei", sans-serif';
+    const w = Math.max(190, ctx.measureText(text).width + 36), h = this.w < 760 ? 40 : 52;
+    const x = (this.w - w) / 2, y = this.h * 0.18;
+    ctx.fillStyle = 'rgba(37,37,37,0.72)'; this._round(ctx, x, y, w, h, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.stroke();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+    ctx.fillText(text, this.w / 2, y + h / 2 + 1);
     ctx.restore();
   };
 

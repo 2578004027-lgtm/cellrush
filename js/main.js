@@ -6,7 +6,7 @@
   function startGame(name, color, skin, account, password, spectate) {
     if (transport) transport.close();
     G.Render._lerp.clear();
-    camInit = false; playing = true; paused = false;
+    camInit = false; playing = true; paused = false; G.paused = false;
     G.Audio.resume();
     transport = new G.NetTransport({
       name, color, skin, account, password, spectate: !!spectate,
@@ -24,7 +24,7 @@
     if (!transport || !transport.ws || transport.ws.readyState > 1) return startGame(name, color, skin);
     transport.respawnMe(name, color, skin);
 
-    camInit = false; playing = true; paused = false;
+    camInit = false; playing = true; paused = false; G.paused = false;
   }
 
   function loop(t) {
@@ -36,6 +36,7 @@
     if (transport) {
       const input = playing ? G.Input.sample(G.Render.camera) : null;
       if (input && input.pauseToggle) paused = !paused;
+      G.paused = paused;
       const sendInput = (playing && !paused) ? input : null;
       transport.update(dt, sendInput);
       const snap = transport.getSnapshot();
@@ -59,7 +60,7 @@
       onAdminKey: (key) => { if (transport) transport.adminLogin(key); },
       onBuySkill: (skill) => { if (transport) transport.buySkill(skill); },
       onAdminTune: (params) => { if (transport) transport.adminTune(params); },
-      onBackToMenu: () => { playing = false; paused = false; if (transport) transport.close(); transport = null; G.Render._lerp.clear(); },
+      onBackToMenu: () => { playing = false; paused = false; G.paused = false; if (transport) transport.close(); transport = null; G.Render._lerp.clear(); },
       isPlaying: () => playing,
       isAdmin: () => !!(transport && transport.latest && transport.latest.me && transport.latest.me.admin),
     });
