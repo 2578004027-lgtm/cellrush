@@ -65,7 +65,7 @@ G.CFG = {
   gridCell: 140,             // spatial-hash cell size
 
   // camera
-  view: { base: 360, margin: 1.45, zoomExp: 0.10, min: 0.22, max: 1.8 },
+  view: { base: 520, margin: 1.12, zoomExp: 0.10, min: 0.18, max: 1.35 },
 
   // color palette offered in the menu (HSL hues)
   hues: [145, 205, 260, 320, 0, 30, 55, 95, 175, 235, 290, 340],

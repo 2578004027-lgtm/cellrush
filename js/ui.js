@@ -297,6 +297,13 @@
         try { localStorage.setItem('cr_mapTheme', theme); } catch (e) { /* ignore */ }
       }
     }));
+    const activeRoom = this.roomList && this.roomList.querySelector('li.active[data-theme]');
+    if (activeRoom && activeRoom.dataset.theme) {
+      G.settings.mapTheme = activeRoom.dataset.theme;
+      const sel = document.getElementById('set-map-theme');
+      if (sel) sel.value = G.settings.mapTheme;
+      try { localStorage.setItem('cr_mapTheme', G.settings.mapTheme); } catch (e) { /* ignore */ }
+    }
     this.refreshRoomStatus();
     clearInterval(this._roomTimer);
     this._roomTimer = setInterval(() => this.refreshRoomStatus(), 3500);

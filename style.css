@@ -293,3 +293,12 @@ html, body {
   .chat-log { max-height: 112px; }
   .chat-msg { font-size: 11px; padding: 3px 7px; }
 }
+
+/* agar-classic-polish */
+.menu-overlay { background: radial-gradient(circle at 50% 42%, rgba(255,255,255,0.36), rgba(226,230,242,0.30) 42%, rgba(0,0,0,0.16)); }
+.shell-panel { border-radius: 8px; background: rgba(36,36,36,0.88); box-shadow: 0 12px 38px rgba(0,0,0,.32); }
+.menu-button.play-button { background: linear-gradient(#8bd84f,#5dae24); border-color: #4f8f1e; text-shadow: 0 1px 1px rgba(0,0,0,.35); }
+.menu-button.spectate-button { background: linear-gradient(#4aa8f2,#2579bd); }
+.panel-title { border-radius: 5px; background: linear-gradient(#3b3b3b,#202020); font-weight: 700; }
+.menu-input { border-radius: 4px; background: rgba(255,255,255,.92); color: #222; }
+.room-list, .skill-intro { border-radius: 5px; }

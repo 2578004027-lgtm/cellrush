@@ -546,6 +546,7 @@
             name: p.name, isMe: p.id === playerId,
             shield: w.time < (p.fx.shield || 0), admin: p.admin, dashing: w.time < (p.fx.dash || 0),
             mergeIn: (p.id === playerId && p.cells.length > 1) ? Math.max(0, c.mergeAt - w.time) : 0,
+            bornPulse: c.splitBornUntil ? Math.max(0, c.splitBornUntil - w.time) : 0,
             revenge: w.time < (p.fx.revenge || 0), growth: !!p._growth, poisoned: w.time < (p.poisonUntil || 0) || !!(p._poisonBomb && w.time < p._poisonBomb.at), silenced: w.time < (p.silenceUntil || 0) });
       }
       if (tm > 0) { cx /= tm; cy /= tm; out.players.push({ x: cx, y: cy, mass: tm, isMe: p.id === playerId }); }

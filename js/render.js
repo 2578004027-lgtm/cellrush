@@ -87,10 +87,21 @@
     if (snap.me) {
       let cx = 0, cy = 0, tm = 0;
       for (const c of snap.cells) if (c.isMe) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
-      if (tm > 0) { cam.x = cx / tm; cam.y = cy / tm; }
-      else if (snap.me.spectator) { cam.x = snap.me.x; cam.y = snap.me.y; }
-      const want = U.clamp((this.h / 2) / (CFG.view.margin * (G.radius(snap.me.mass || CFG.startMass) + CFG.view.base)), CFG.view.min, CFG.view.max);
-      cam.scale += (want - cam.scale) * (dt ? 1 - Math.exp(-6 * dt) : 1);
+      const classic = (G.settings.mapTheme || 'classic') === 'classic';
+      const targetX = tm > 0 ? cx / tm : (snap.me.spectator ? snap.me.x : cam.x);
+      const targetY = tm > 0 ? cy / tm : (snap.me.spectator ? snap.me.y : cam.y);
+      if (classic) {
+        const follow = dt ? 1 - Math.exp(-10 * dt) : 1;
+        cam.x += (targetX - cam.x) * follow;
+        cam.y += (targetY - cam.y) * follow;
+      } else { cam.x = targetX; cam.y = targetY; }
+      const mass = snap.me.mass || CFG.startMass;
+      const base = classic ? 720 : CFG.view.base;
+      const margin = classic ? 1.02 : CFG.view.margin;
+      const minZ = classic ? 0.20 : CFG.view.min;
+      const maxZ = classic ? 1.18 : CFG.view.max;
+      const want = U.clamp((this.h / 2) / (margin * (G.radius(mass) + base)), minZ, maxZ);
+      cam.scale += (want - cam.scale) * (dt ? 1 - Math.exp(-(classic ? 4.2 : 6) * dt) : 1);
     }
   };
 
@@ -198,11 +209,12 @@
     const cb = this.cullBounds();
     for (const f of snap.food) {
       if (f.x < cb.x0 || f.x > cb.x1 || f.y < cb.y0 || f.y > cb.y1) continue;
-      const s = Math.max(3 / cam.scale, f.r * 1.55);
+      const classicFood = (G.settings.mapTheme || 'classic') === 'classic';
+      const s = classicFood ? Math.max(5 / cam.scale, f.r * 2.35) : Math.max(3 / cam.scale, f.r * 1.55);
       ctx.save();
       ctx.globalAlpha = 0.96;
       ctx.fillStyle = f.color;
-      if ((G.settings.mapTheme || 'classic') === 'classic') { ctx.beginPath(); ctx.arc(f.x, f.y, s * 0.48, 0, U.TAU); ctx.fill(); }
+      if (classicFood) { ctx.beginPath(); ctx.arc(f.x, f.y, s * 0.48, 0, U.TAU); ctx.fill(); ctx.globalAlpha = 0.20; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(f.x - s * 0.13, f.y - s * 0.13, s * 0.16, 0, U.TAU); ctx.fill(); }
       else { ctx.fillRect(f.x - s * 0.5, f.y - s * 0.5, s, s); ctx.globalAlpha = 0.22; ctx.fillStyle = '#fff'; ctx.fillRect(f.x - s * 0.22, f.y - s * 0.22, s * 0.44, s * 0.44); }
       ctx.restore();
     }
@@ -215,7 +227,7 @@
     const stack = snap.cells.slice();
     for (const v of snap.viruses) { v._isVirus = true; stack.push(v); }
     stack.sort((a, b) => (a.mass || 0) - (b.mass || 0));
-    const squeeze = G.settings.visualSqueeze ? this._squeezeMap(stack, dt) : null;
+    const squeeze = (G.settings.visualSqueeze || classic) ? this._squeezeMap(stack, dt) : null;
     for (const o of stack) { if (o._isVirus) this._virus(ctx, o); else this._cell(ctx, o, squeeze && squeeze.get(o.id)); }
     this._assists(ctx, snap, input);
     this._drawSignals(ctx, dt);
@@ -474,9 +486,9 @@
         if (d >= near) continue;
         const minR = Math.max(8, Math.min(a.r, b.r));
         const overlap = near - d;
-        const pressure = U.clamp(overlap / Math.max(12, minR * 0.72), 0, 1);
+        const pressure = U.clamp(overlap / Math.max(8, minR * 0.55), 0, 1);
         const rel = Math.hypot((a.vx || 0) - (b.vx || 0), (a.vy || 0) - (b.vy || 0));
-        const amt = U.clamp(pressure * 0.34 + Math.min(0.07, rel / 11000), 0, 0.38);
+        const amt = U.clamp(pressure * 0.50 + Math.min(0.10, rel / 8500), 0, 0.56);
         if (amt <= 0.012) continue;
         const ang = Math.atan2(dy, dx);
         addContact(a, ang, amt);
@@ -488,6 +500,10 @@
     const step = Math.min(0.05, Math.max(0.001, dt || 1 / 60));
     for (const c of cells) {
       const raw = (targets.get(c.id) || []).sort((a, b) => b.amt - a.amt).slice(0, 4);
+      const spd = Math.hypot(c.vx || 0, c.vy || 0);
+      const motionAmt = U.clamp(spd / 4200 + (c.bornPulse ? c.bornPulse * 1.6 : 0), 0, 0.22);
+      if (motionAmt > 0.01) raw.push({ angle: Math.atan2(c.vy || 0, c.vx || 0), amt: motionAmt, stretch: true });
+      raw.sort((a, b) => b.amt - a.amt);
       const targetAmt = raw.length ? raw[0].amt : 0;
       const prev = this._squeeze.get(c.id) || { amp: 0, vel: 0, angle: 0, wobble: 0 };
       const accel = (targetAmt - prev.amp) * 130 - prev.vel * 18;
@@ -496,7 +512,7 @@
       const angle = raw.length ? raw[0].angle : prev.angle;
       const wobble = (prev.wobble || 0) + step * (raw.length ? 22 : 13);
       const scale = targetAmt > 0.0001 ? amp / targetAmt : 0;
-      const contacts = raw.map((r) => ({ angle: r.angle, amt: U.clamp(r.amt * scale, 0, 0.42) }));
+      const contacts = raw.map((r) => ({ angle: r.angle, amt: U.clamp(r.amt * scale, 0, 0.58), stretch: !!r.stretch }));
       const sq = { amp, vel, angle, wobble, contacts };
       this._squeeze.set(c.id, sq);
       if (amp > 0.004 || Math.abs(vel) > 0.012) out.set(c.id, sq);
@@ -518,12 +534,13 @@
       for (const contact of sq.contacts) {
         const d = Math.atan2(Math.sin(th - contact.angle), Math.cos(th - contact.angle));
         const ad = Math.abs(d);
-        const front = Math.exp(-(ad * ad) / 0.20);                    // dent at contact point
+        const front = Math.exp(-(ad * ad) / 0.20);                    // contact / forward axis
         const side = Math.exp(-Math.pow(ad - Math.PI / 2, 2) / 0.34); // soft sideways bulge
-        const back = Math.exp(-Math.pow(Math.PI - ad, 2) / 0.55);     // tiny recoil at back
-        deform += contact.amt * (-0.36 * front + 0.13 * side + 0.035 * back);
+        const back = Math.exp(-Math.pow(Math.PI - ad, 2) / 0.55);     // rear axis
+        if (contact.stretch) deform += contact.amt * (0.24 * front - 0.14 * side + 0.18 * back);
+        else deform += contact.amt * (-0.46 * front + 0.20 * side + 0.06 * back);
       }
-      deform += Math.sin(th * 3 + (sq.wobble || 0)) * sq.amp * 0.018;
+      deform += Math.sin(th * 3 + (sq.wobble || 0)) * sq.amp * 0.035;
       deform += wob * sq.amp * 0.012;
       const rr = c.r * U.clamp(1 + deform, 0.68, 1.18);
       pts.push({ x: c.x + Math.cos(th) * rr, y: c.y + Math.sin(th) * rr });
@@ -539,8 +556,14 @@
   };
 
   Render._cell = function (ctx, c, sq) {
+    const classicCell = (G.settings.mapTheme || 'classic') === 'classic';
     this._cellPath(ctx, c, sq);
     ctx.fillStyle = c.color; ctx.fill();
+    if (classicCell) {
+      const hi = ctx.createRadialGradient(c.x - c.r * 0.32, c.y - c.r * 0.36, c.r * 0.08, c.x, c.y, c.r);
+      hi.addColorStop(0, 'rgba(255,255,255,0.18)'); hi.addColorStop(0.45, 'rgba(255,255,255,0.02)'); hi.addColorStop(1, 'rgba(0,0,0,0.10)');
+      ctx.fillStyle = hi; ctx.fill();
+    }
     const skin = G.settings.visualSkins ? this._skinImage(c.skin) : null;
     if (skin) {
       ctx.save();
@@ -550,8 +573,8 @@
       ctx.restore();
       this._cellPath(ctx, c, sq);
     }
-    ctx.lineWidth = Math.max(2, c.r * 0.05);
-    ctx.strokeStyle = c.dark || 'rgba(0,0,0,0.25)'; ctx.stroke();
+    ctx.lineWidth = classicCell ? Math.max(3, c.r * 0.065) : Math.max(2, c.r * 0.05);
+    ctx.strokeStyle = classicCell ? 'rgba(0,0,0,0.28)' : (c.dark || 'rgba(0,0,0,0.25)'); ctx.stroke();
 
     if (G.settings.visualStatus) {
       if (c.revenge) { ctx.beginPath(); ctx.arc(c.x, c.y, c.r + 7 / this.camera.scale + c.r * 0.06, 0, U.TAU); ctx.lineWidth = Math.max(2, c.r * 0.09); ctx.strokeStyle = 'rgba(255,107,138,0.9)'; ctx.stroke(); }
@@ -569,8 +592,8 @@
       ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineJoin = 'round';
       let yOff = 0;
       if (G.settings.names && c.name) {
-        const fs = Math.max(11, c.r * 0.42);
-        ctx.font = '700 ' + fs + 'px "Microsoft YaHei", sans-serif'; ctx.lineWidth = fs * 0.14;
+        const fs = Math.max(11, c.r * (classicCell ? 0.36 : 0.42));
+        ctx.font = '700 ' + fs + 'px "Microsoft YaHei", Arial, sans-serif'; ctx.lineWidth = fs * (classicCell ? 0.18 : 0.14);
         ctx.strokeText(c.name, c.x, c.y); ctx.fillText(c.name, c.x, c.y);
         yOff = fs * 0.85;
       }
@@ -680,6 +703,24 @@
 
   Render._leaderboard = function (snap) {
     const ctx = this.ctx, lb = snap.leaderboard || [], mobile = this.w < 760;
+    if ((G.settings.mapTheme || 'classic') === 'classic') {
+      const x = this.w - (mobile ? 12 : 24), y = mobile ? 12 : 22, maxRows = mobile ? 6 : 10;
+      ctx.save();
+      ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+      ctx.font = (mobile ? '700 18px ' : '700 26px ') + 'Arial, sans-serif';
+      ctx.lineWidth = mobile ? 3 : 4; ctx.strokeStyle = 'rgba(0,0,0,0.38)'; ctx.fillStyle = '#fff';
+      ctx.strokeText('Leaderboard', x, y + (mobile ? 16 : 24)); ctx.fillText('Leaderboard', x, y + (mobile ? 16 : 24));
+      ctx.font = (mobile ? '700 12px ' : '700 15px ') + 'Arial, sans-serif'; ctx.lineWidth = mobile ? 2.5 : 3;
+      lb.slice(0, maxRows).forEach((e, i) => {
+        let nm = e.name || 'Player'; if (nm.length > (mobile ? 12 : 18)) nm = nm.slice(0, mobile ? 12 : 18);
+        const text = (i + 1) + '. ' + nm;
+        const yy = y + (mobile ? 39 : 57) + i * (mobile ? 17 : 21);
+        ctx.fillStyle = e.isMe ? '#fff475' : '#fff';
+        ctx.strokeText(text, x, yy); ctx.fillText(text, x, yy);
+      });
+      ctx.restore();
+      return;
+    }
     const w = mobile ? 158 : 218, x = this.w - w - (mobile ? 6 : 10), y = mobile ? 6 : 10;
     const maxRows = mobile ? 5 : 10, rowH = mobile ? 18 : 23;
     ctx.save();
@@ -762,7 +803,7 @@
     const k = s / snap.world;
     const me = snap.me ? this._sectorInfo(snap.me.x, snap.me.y, snap.world) : null;
     ctx.save();
-    ctx.fillStyle = 'rgba(8,10,24,0.48)'; this._round(ctx, x, y, s, s, mobile ? 6 : 12); ctx.fill();
+    ctx.fillStyle = (G.settings.mapTheme || 'classic') === 'classic' ? 'rgba(255,255,255,0.40)' : 'rgba(8,10,24,0.48)'; this._round(ctx, x, y, s, s, mobile ? 6 : 12); ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.09)'; ctx.lineWidth = 1; ctx.stroke();
 
     if (me) {
@@ -858,6 +899,25 @@
 
   Render._hud = function (snap) {
     const ctx = this.ctx, net = snap._net || {}, mobile = this.w < 760;
+    if ((G.settings.mapTheme || 'classic') === 'classic') {
+      ctx.save();
+      const mass = snap.me ? Math.floor(snap.me.mass) : 0;
+      const score = snap.me ? Math.floor(snap.me.maxMass || snap.me.mass || 0) : 0;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+      ctx.font = (mobile ? '700 18px ' : '700 24px ') + 'Arial, sans-serif';
+      ctx.lineWidth = mobile ? 3 : 4; ctx.strokeStyle = 'rgba(0,0,0,0.34)'; ctx.fillStyle = '#fff';
+      const t1 = 'Score: ' + score;
+      const t2 = 'Mass: ' + mass;
+      ctx.strokeText(t1, 16, this.h - (mobile ? 44 : 54)); ctx.fillText(t1, 16, this.h - (mobile ? 44 : 54));
+      ctx.strokeText(t2, 16, this.h - (mobile ? 20 : 24)); ctx.fillText(t2, 16, this.h - (mobile ? 20 : 24));
+      if (G.settings.perfStats && !mobile) {
+        ctx.font = '700 12px Arial, sans-serif'; ctx.lineWidth = 2;
+        const txt = 'FPS ' + (this.fps || 0) + '  JIT ' + (net.jitterMs || 0) + 'ms';
+        ctx.strokeText(txt, 16, 24); ctx.fillText(txt, 16, 24);
+      }
+      ctx.restore();
+      return;
+    }
     ctx.save();
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     ctx.font = (mobile ? '600 11px ' : '600 12.5px ') + '"Microsoft YaHei", sans-serif';
@@ -961,6 +1021,7 @@
   };
 
   Render._roomBar = function (snap) {
+    if ((G.settings.mapTheme || 'classic') === 'classic') return;
     if (!snap || !snap.me || this.w < 760) return;
     const ctx = this.ctx, st = snap.stats || {}, me = snap.me;
     const left = '\u9ed8\u8ba4\u623f\u95f4   \u5b58\u6d3b ' + (st.alive || 0) + '   \u73a9\u5bb6 ' + (st.humans || 0) + '   AI ' + (st.bots || 0);
