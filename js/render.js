@@ -63,48 +63,64 @@
     return img.complete && img.naturalWidth > 0 ? img : null;
   };
 
-  // ease every moving entity toward its latest server position (smooth, cheap, no jitter)
+  // Agar-style interpolation: keep a small render delay instead of snapping to each server tick.
   Render._smooth = function (snap, dt) {
     if (snap._interpolated) { this._lerp.clear(); return; }
-    const k = 1 - Math.exp(-20 * dt);
+    const step = Math.min(0.05, Math.max(0.001, dt || 1 / 60));
     const store = this._lerp, seen = new Set();
-    const ease = (arr, pfx) => {
+    const ease = (arr, pfx, rate) => {
+      const k = 1 - Math.exp(-rate * step);
       for (const e of arr) {
         const id = pfx + e.id; seen.add(id);
         let s = store.get(id);
-        if (!s) { s = { x: e.x, y: e.y }; store.set(id, s); }
-        else { s.x += (e.x - s.x) * k; s.y += (e.y - s.y) * k; }
+        if (!s) { s = { x: e.x, y: e.y, vx: 0, vy: 0 }; store.set(id, s); }
+        else {
+          const ox = s.x, oy = s.y;
+          s.x += (e.x - s.x) * k; s.y += (e.y - s.y) * k;
+          s.vx = (s.x - ox) / step; s.vy = (s.y - oy) / step;
+        }
         e.x = s.x; e.y = s.y;
+        if (typeof e.vx !== 'number' || typeof e.vy !== 'number') { e.vx = s.vx || 0; e.vy = s.vy || 0; }
       }
     };
-    ease(snap.cells, 'c'); ease(snap.viruses, 'v'); ease(snap.ejected, 'e');
+    ease(snap.cells, 'c', 13.5); ease(snap.viruses, 'v', 15.5); ease(snap.ejected, 'e', 18.5);
     for (const key of store.keys()) if (!seen.has(key)) store.delete(key);
   };
 
-  // lock camera to the player's smoothed centroid; ease only the zoom
+  // lock camera to the player's smoothed centroid; agar.io uses a slow inertial view and mass-based zoom.
   Render._camera = function (snap, dt) {
     const cam = this.camera;
     if (snap.me) {
-      let cx = 0, cy = 0, tm = 0;
-      for (const c of snap.cells) if (c.isMe) { cx += c.x * c.mass; cy += c.y * c.mass; tm += c.mass; }
+      let cx = 0, cy = 0, tm = 0, vx = 0, vy = 0;
+      const own = [];
+      for (const c of snap.cells) if (c.isMe) { own.push(c); cx += c.x * c.mass; cy += c.y * c.mass; vx += (c.vx || 0) * c.mass; vy += (c.vy || 0) * c.mass; tm += c.mass; }
       const classic = (G.settings.mapTheme || 'classic') === 'classic';
       const targetX = tm > 0 ? cx / tm : (snap.me.spectator ? snap.me.x : cam.x);
       const targetY = tm > 0 ? cy / tm : (snap.me.spectator ? snap.me.y : cam.y);
+      vx = tm > 0 ? vx / tm : 0; vy = tm > 0 ? vy / tm : 0;
+      let spread = 0;
+      for (const c of own) spread = Math.max(spread, Math.hypot(c.x - targetX, c.y - targetY) + c.r);
       if (classic) {
-        const follow = dt ? 1 - Math.exp(-10 * dt) : 1;
-        cam.x += (targetX - cam.x) * follow;
-        cam.y += (targetY - cam.y) * follow;
+        const step = Math.min(0.05, Math.max(0.001, dt || 1 / 60));
+        const look = U.clamp(Math.hypot(vx, vy) * 0.045, 0, 110);
+        const lx = targetX + (Math.hypot(vx, vy) > 1 ? vx / Math.hypot(vx, vy) * look : 0);
+        const ly = targetY + (Math.hypot(vx, vy) > 1 ? vy / Math.hypot(vx, vy) * look : 0);
+        const follow = 1 - Math.exp(-4.8 * step);
+        cam.x += (lx - cam.x) * follow;
+        cam.y += (ly - cam.y) * follow;
       } else { cam.x = targetX; cam.y = targetY; }
       const mass = snap.me.mass || CFG.startMass;
       let want;
       if (classic) {
-        // Agar.io-like camera: close at spawn, then slowly zooms out by cell radius.
-        const r = G.radius(mass);
-        want = U.clamp(0.56 * Math.pow(200 / Math.max(80, mass), 0.11), 0.24, 0.62);
+        const screenFactor = U.clamp(Math.max(this.w / 1920, this.h / 1080), 0.58, 1.05);
+        const massZoom = Math.pow(Math.min(64 / Math.max(64, mass), 1), 0.4) * screenFactor * 1.04;
+        const spreadZoom = U.clamp((Math.min(this.w, this.h) * 0.44) / Math.max(260, spread + 210), 0.15, 0.74);
+        want = U.clamp(Math.min(massZoom, spreadZoom), 0.15, 0.72);
       } else {
         want = U.clamp((this.h / 2) / (CFG.view.margin * (G.radius(mass) + CFG.view.base)), CFG.view.min, CFG.view.max);
       }
-      cam.scale += (want - cam.scale) * (dt ? 1 - Math.exp(-(classic ? 3.2 : 6) * dt) : 1);
+      const zoomFollow = dt ? 1 - Math.exp(-(classic ? 2.15 : 6) * dt) : 1;
+      cam.scale += (want - cam.scale) * zoomFollow;
     }
   };
 
@@ -577,33 +593,40 @@
   };
 
   Render._cellPath = function (ctx, c, sq) {
-    if (!sq || !sq.contacts || !sq.contacts.length || sq.amp <= 0.006) {
-      ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, U.TAU); return;
-    }
+    const classic = (G.settings.mapTheme || 'classic') === 'classic';
+    const spd = Math.hypot(c.vx || 0, c.vy || 0);
+    const active = (sq && sq.contacts && sq.contacts.length && sq.amp > 0.006) || (classic && c.r > 13);
+    if (!active) { ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, U.TAU); return; }
     const pts = [];
-    const n = c.r > 70 ? 34 : 26;
-    const wob = Math.sin(sq.wobble || 0);
+    const n = c.r > 95 ? 44 : (c.r > 55 ? 36 : 28);
+    const idSeed = (typeof c.id === 'string' ? c.id.length * 17 + c.id.charCodeAt(0) : (c.id || 0)) || 1;
+    const time = (performance.now() || 0) * 0.001;
+    const wob = Math.sin((sq && sq.wobble) || time * 2.2);
+    const baseWave = classic ? U.clamp(0.010 + spd / 14500 + (c.bornPulse ? c.bornPulse * 0.95 : 0), 0.010, 0.070) : 0;
+    const sqAmp = sq ? sq.amp : 0;
     for (let i = 0; i < n; i++) {
       const th = U.TAU * i / n;
       let deform = 0;
-      for (const contact of sq.contacts) {
+      if (sq && sq.contacts) for (const contact of sq.contacts) {
         const d = Math.atan2(Math.sin(th - contact.angle), Math.cos(th - contact.angle));
         const ad = Math.abs(d);
-        const front = Math.exp(-(ad * ad) / 0.20);                    // contact / forward axis
-        const side = Math.exp(-Math.pow(ad - Math.PI / 2, 2) / 0.34); // soft sideways bulge
-        const back = Math.exp(-Math.pow(Math.PI - ad, 2) / 0.55);     // rear axis
+        const front = Math.exp(-(ad * ad) / 0.20);
+        const side = Math.exp(-Math.pow(ad - Math.PI / 2, 2) / 0.34);
+        const back = Math.exp(-Math.pow(Math.PI - ad, 2) / 0.55);
         if (contact.stretch) deform += contact.amt * (0.24 * front - 0.14 * side + 0.18 * back);
         else deform += contact.amt * (-0.46 * front + 0.20 * side + 0.06 * back);
       }
-      deform += Math.sin(th * 3 + (sq.wobble || 0)) * sq.amp * 0.035;
-      deform += wob * sq.amp * 0.012;
-      const rr = c.r * U.clamp(1 + deform, 0.68, 1.18);
+      deform += Math.sin(th * 5 + time * 2.6 + idSeed) * baseWave * 0.55;
+      deform += Math.sin(th * 9 - time * 1.8 + idSeed * 0.37) * baseWave * 0.32;
+      deform += Math.sin(th * 3 + ((sq && sq.wobble) || time * 3.1)) * sqAmp * 0.035;
+      deform += wob * sqAmp * 0.012;
+      const rr = c.r * U.clamp(1 + deform, 0.66, 1.20);
       pts.push({ x: c.x + Math.cos(th) * rr, y: c.y + Math.sin(th) * rr });
     }
     ctx.beginPath();
     for (let i = 0; i < pts.length; i++) {
-      const p0 = pts[i], p1 = pts[(i + 1) % pts.length];
-      const mx = (p0.x + p1.x) * 0.5, my = (p0.y + p1.y) * 0.5;
+      const p1 = pts[(i + 1) % pts.length];
+      const mx = (pts[i].x + p1.x) * 0.5, my = (pts[i].y + p1.y) * 0.5;
       if (i === 0) ctx.moveTo(mx, my);
       ctx.quadraticCurveTo(p1.x, p1.y, (p1.x + pts[(i + 2) % pts.length].x) * 0.5, (p1.y + pts[(i + 2) % pts.length].y) * 0.5);
     }
@@ -685,7 +708,7 @@
     for (let i = 0; i < spikes * 2; i++) {
       const outer = i % 2 === 0;
       const ang = a0 + Math.PI * i / spikes;
-      const wave = thorn ? Math.sin(now * 16 + i * 0.82 + ((sq && sq.wobble) || 0) * 0.28) : 0;
+      const wave = Math.sin(now * (thorn ? 16 : 7.5) + i * 0.82 + ((sq && sq.wobble) || 0) * 0.28);
       const front = thorn ? Math.cos(ang - fixedThornAngle) : 0;
       let deform = 0;
       if (sq && sq.contacts && sq.contacts.length) {
@@ -701,7 +724,8 @@
         deform += Math.sin(ang * 5 + (sq.wobble || 0)) * sq.amp * 0.12;
       }
       const thornPulse = thorn && outer ? (1 + 0.10 * wave + 0.08 * Math.max(0, front)) : 1;
-      const baseR = outer ? r * (classic ? 1.12 : 1.05) * thornPulse : ir * (thorn ? (0.95 + 0.04 * wave) : 1);
+      const basePulse = thorn ? thornPulse : (outer ? 1 + 0.026 * wave : 1 - 0.014 * wave);
+      const baseR = outer ? r * (classic ? 1.12 : 1.05) * basePulse : ir * (thorn ? (0.95 + 0.04 * wave) : (1 - 0.018 * wave));
       const rr = baseR * U.clamp(1 + deform, thorn ? 0.54 : 0.64, thorn ? 1.34 : 1.18);
       const x = v.x + Math.cos(ang) * rr, y = v.y + Math.sin(ang) * rr;
       if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
