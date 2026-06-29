@@ -230,7 +230,7 @@
     const stack = snap.cells.slice();
     for (const v of snap.viruses) { v._isVirus = true; stack.push(v); }
     stack.sort((a, b) => (a.mass || 0) - (b.mass || 0));
-    const squeeze = (G.settings.visualSqueeze || classic) ? this._squeezeMap(stack, dt) : null;
+    const squeeze = (G.settings.visualSqueeze || classic) ? this._squeezeMap(stack, dt, snap.events) : null;
     for (const o of stack) { if (o._isVirus) this._virus(ctx, o); else this._cell(ctx, o, squeeze && squeeze.get(o.id)); }
     this._assists(ctx, snap, input);
     this._drawSignals(ctx, dt);
@@ -468,8 +468,9 @@
     ctx.restore();
   };
 
-  Render._squeezeMap = function (stack, dt) {
+  Render._squeezeMap = function (stack, dt, events) {
     const cells = stack.filter((c) => !c._isVirus && c.r > 8);
+    const viruses = stack.filter((v) => v._isVirus && v.r > 8);
     const targets = new Map(), seen = new Set();
     for (const c of cells) seen.add(c.id);
 
@@ -496,6 +497,47 @@
         const ang = Math.atan2(dy, dx);
         addContact(a, ang, amt);
         addContact(b, ang + Math.PI, amt);
+      }
+    }
+
+    for (const c of cells) {
+      for (const v of viruses) {
+        const dx = v.x - c.x, dy = v.y - c.y;
+        const d = Math.hypot(dx, dy) || 0.001;
+        const rel = Math.hypot((c.vx || 0) - (v.vx || 0), (c.vy || 0) - (v.vy || 0));
+        const movingThorn = v.kind === 'thorn';
+        const lead = movingThorn ? Math.min(v.r * 0.70, rel * 0.026) : 0;
+        const near = c.r + v.r * (movingThorn ? 0.78 : 0.92) + lead;
+        if (d >= near) continue;
+        const minR = Math.max(8, Math.min(c.r, v.r));
+        const overlap = near - d;
+        const pressure = U.clamp(overlap / Math.max(8, minR * 0.46), 0, 1);
+        const amt = U.clamp(pressure * (movingThorn ? 0.58 : 0.44) + Math.min(movingThorn ? 0.18 : 0.08, rel / 7200), 0, movingThorn ? 0.62 : 0.48);
+        if (amt <= 0.012) continue;
+        addContact(c, Math.atan2(dy, dx), amt);
+      }
+    }
+
+    if (events && events.length) {
+      for (const ev of events) {
+        if (ev.type !== 'thornHit') continue;
+        let best = null, bestScore = Infinity, bestAngle = ev.angle || 0;
+        const cx = ev.x + Math.cos(ev.angle || 0) * (ev.targetR || ev.r || 24);
+        const cy = ev.y + Math.sin(ev.angle || 0) * (ev.targetR || ev.r || 24);
+        for (const c of cells) {
+          const dx = ev.x - c.x, dy = ev.y - c.y;
+          const d = Math.hypot(dx, dy) || 0.001;
+          const centerScore = Math.hypot(c.x - cx, c.y - cy);
+          const edgeScore = Math.abs(d - c.r);
+          const score = Math.min(centerScore * 0.55, edgeScore + centerScore * 0.08);
+          if (score < bestScore) { best = c; bestScore = score; bestAngle = Math.atan2(dy, dx); }
+        }
+        if (best && bestScore < Math.max(42, (ev.targetR || best.r) * 0.48)) {
+          const amt = U.clamp(0.30 + Math.min(0.28, (ev.r || 20) / Math.max(18, best.r)), 0.32, 0.58);
+          const prev = this._squeeze.get(best.id) || { amp: 0, vel: 0, angle: bestAngle, wobble: 0 };
+          this._squeeze.set(best.id, { amp: Math.max(prev.amp || 0, 0.08), vel: Math.max(prev.vel || 0, 4.8), angle: bestAngle, wobble: prev.wobble || 0, contacts: prev.contacts || [] });
+          addContact(best, bestAngle, amt);
+        }
       }
     }
 
