@@ -231,7 +231,7 @@
     for (const v of snap.viruses) { v._isVirus = true; stack.push(v); }
     stack.sort((a, b) => (a.mass || 0) - (b.mass || 0));
     const squeeze = (G.settings.visualSqueeze || classic) ? this._squeezeMap(stack, dt, snap.events) : null;
-    for (const o of stack) { if (o._isVirus) this._virus(ctx, o); else this._cell(ctx, o, squeeze && squeeze.get(o.id)); }
+    for (const o of stack) { if (o._isVirus) this._virus(ctx, o, squeeze && squeeze.get('v' + o.id)); else this._cell(ctx, o, squeeze && squeeze.get('c' + o.id)); }
     this._assists(ctx, snap, input);
     this._drawSignals(ctx, dt);
     this._spawnFx(snap.events); this._drawFx(ctx, dt);
@@ -472,11 +472,14 @@
     const cells = stack.filter((c) => !c._isVirus && c.r > 8);
     const viruses = stack.filter((v) => v._isVirus && v.r > 8);
     const targets = new Map(), seen = new Set();
-    for (const c of cells) seen.add(c.id);
+    const sqKey = (o) => (o._isVirus ? 'v' : 'c') + o.id;
+    for (const c of cells) seen.add(sqKey(c));
+    for (const v of viruses) seen.add(sqKey(v));
 
-    const addContact = (c, angle, amt) => {
-      let arr = targets.get(c.id);
-      if (!arr) { arr = []; targets.set(c.id, arr); }
+    const addContact = (o, angle, amt) => {
+      const key = sqKey(o);
+      let arr = targets.get(key);
+      if (!arr) { arr = []; targets.set(key, arr); }
       arr.push({ angle, amt });
     };
 
@@ -514,7 +517,9 @@
         const pressure = U.clamp(overlap / Math.max(8, minR * 0.46), 0, 1);
         const amt = U.clamp(pressure * (movingThorn ? 0.58 : 0.44) + Math.min(movingThorn ? 0.18 : 0.08, rel / 7200), 0, movingThorn ? 0.62 : 0.48);
         if (amt <= 0.012) continue;
-        addContact(c, Math.atan2(dy, dx), amt);
+        const ang = Math.atan2(dy, dx);
+        addContact(c, ang, amt);
+        addContact(v, ang + Math.PI, amt * (movingThorn ? 0.92 : 0.76));
       }
     }
 
@@ -534,8 +539,9 @@
         }
         if (best && bestScore < Math.max(42, (ev.targetR || best.r) * 0.48)) {
           const amt = U.clamp(0.30 + Math.min(0.28, (ev.r || 20) / Math.max(18, best.r)), 0.32, 0.58);
-          const prev = this._squeeze.get(best.id) || { amp: 0, vel: 0, angle: bestAngle, wobble: 0 };
-          this._squeeze.set(best.id, { amp: Math.max(prev.amp || 0, 0.08), vel: Math.max(prev.vel || 0, 4.8), angle: bestAngle, wobble: prev.wobble || 0, contacts: prev.contacts || [] });
+          const key = sqKey(best);
+          const prev = this._squeeze.get(key) || { amp: 0, vel: 0, angle: bestAngle, wobble: 0 };
+          this._squeeze.set(key, { amp: Math.max(prev.amp || 0, 0.08), vel: Math.max(prev.vel || 0, 4.8), angle: bestAngle, wobble: prev.wobble || 0, contacts: prev.contacts || [] });
           addContact(best, bestAngle, amt);
         }
       }
@@ -543,24 +549,28 @@
 
     const out = new Map();
     const step = Math.min(0.05, Math.max(0.001, dt || 1 / 60));
-    for (const c of cells) {
-      const raw = (targets.get(c.id) || []).sort((a, b) => b.amt - a.amt).slice(0, 4);
+    const bodies = cells.concat(viruses);
+    for (const c of bodies) {
+      const key = sqKey(c);
+      const raw = (targets.get(key) || []).sort((a, b) => b.amt - a.amt).slice(0, c._isVirus ? 5 : 4);
       const spd = Math.hypot(c.vx || 0, c.vy || 0);
-      const motionAmt = U.clamp(spd / 4200 + (c.bornPulse ? c.bornPulse * 1.6 : 0), 0, 0.22);
+      const motionAmt = c._isVirus
+        ? U.clamp(spd / (c.kind === 'thorn' ? 2600 : 4600), 0, c.kind === 'thorn' ? 0.30 : 0.14)
+        : U.clamp(spd / 4200 + (c.bornPulse ? c.bornPulse * 1.6 : 0), 0, 0.22);
       if (motionAmt > 0.01) raw.push({ angle: Math.atan2(c.vy || 0, c.vx || 0), amt: motionAmt, stretch: true });
       raw.sort((a, b) => b.amt - a.amt);
       const targetAmt = raw.length ? raw[0].amt : 0;
-      const prev = this._squeeze.get(c.id) || { amp: 0, vel: 0, angle: 0, wobble: 0 };
-      const accel = (targetAmt - prev.amp) * 130 - prev.vel * 18;
+      const prev = this._squeeze.get(key) || { amp: 0, vel: 0, angle: 0, wobble: 0 };
+      const accel = (targetAmt - prev.amp) * (c._isVirus ? 165 : 130) - prev.vel * (c._isVirus ? 16 : 18);
       const vel = prev.vel + accel * step;
-      const amp = U.clamp(prev.amp + vel * step, 0, 0.42);
+      const amp = U.clamp(prev.amp + vel * step, 0, c._isVirus ? 0.58 : 0.42);
       const angle = raw.length ? raw[0].angle : prev.angle;
-      const wobble = (prev.wobble || 0) + step * (raw.length ? 22 : 13);
+      const wobble = (prev.wobble || 0) + step * (raw.length ? (c._isVirus ? 30 : 22) : (c._isVirus ? 18 : 13));
       const scale = targetAmt > 0.0001 ? amp / targetAmt : 0;
-      const contacts = raw.map((r) => ({ angle: r.angle, amt: U.clamp(r.amt * scale, 0, 0.58), stretch: !!r.stretch }));
+      const contacts = raw.map((r) => ({ angle: r.angle, amt: U.clamp(r.amt * scale, 0, c._isVirus ? 0.74 : 0.58), stretch: !!r.stretch }));
       const sq = { amp, vel, angle, wobble, contacts };
-      this._squeeze.set(c.id, sq);
-      if (amp > 0.004 || Math.abs(vel) > 0.012) out.set(c.id, sq);
+      this._squeeze.set(key, sq);
+      if (amp > 0.004 || Math.abs(vel) > 0.012) out.set(key, sq);
     }
     for (const id of this._squeeze.keys()) if (!seen.has(id)) this._squeeze.delete(id);
     return out;
@@ -649,7 +659,7 @@
     }
   };
 
-  Render._virus = function (ctx, v) {
+  Render._virus = function (ctx, v, sq) {
     const classic = (G.settings.mapTheme || 'classic') === 'classic';
     const spikes = classic ? 28 : 20, r = v.r, ir = r * (classic ? 0.82 : 0.86);
     const moving = v.kind === 'thorn' || Math.hypot(v.vx || 0, v.vy || 0) > 20;
@@ -675,10 +685,24 @@
     for (let i = 0; i < spikes * 2; i++) {
       const outer = i % 2 === 0;
       const ang = a0 + Math.PI * i / spikes;
-      const wave = thorn ? Math.sin(now * 16 + i * 0.82) : 0;
+      const wave = thorn ? Math.sin(now * 16 + i * 0.82 + ((sq && sq.wobble) || 0) * 0.28) : 0;
       const front = thorn ? Math.cos(ang - fixedThornAngle) : 0;
+      let deform = 0;
+      if (sq && sq.contacts && sq.contacts.length) {
+        for (const contact of sq.contacts) {
+          const delta = Math.atan2(Math.sin(ang - contact.angle), Math.cos(ang - contact.angle));
+          const ad = Math.abs(delta);
+          const frontHit = Math.exp(-(ad * ad) / 0.18);
+          const sideBulge = Math.exp(-Math.pow(ad - Math.PI / 2, 2) / 0.28);
+          const rearLift = Math.exp(-Math.pow(Math.PI - ad, 2) / 0.46);
+          if (contact.stretch) deform += contact.amt * (0.28 * frontHit - 0.12 * sideBulge + 0.12 * rearLift);
+          else deform += contact.amt * (-0.58 * frontHit + 0.34 * sideBulge + 0.10 * rearLift);
+        }
+        deform += Math.sin(ang * 5 + (sq.wobble || 0)) * sq.amp * 0.12;
+      }
       const thornPulse = thorn && outer ? (1 + 0.10 * wave + 0.08 * Math.max(0, front)) : 1;
-      const rr = outer ? r * (classic ? 1.12 : 1.05) * thornPulse : ir * (thorn ? (0.95 + 0.04 * wave) : 1);
+      const baseR = outer ? r * (classic ? 1.12 : 1.05) * thornPulse : ir * (thorn ? (0.95 + 0.04 * wave) : 1);
+      const rr = baseR * U.clamp(1 + deform, thorn ? 0.54 : 0.64, thorn ? 1.34 : 1.18);
       const x = v.x + Math.cos(ang) * rr, y = v.y + Math.sin(ang) * rr;
       if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
     }
@@ -701,6 +725,7 @@
       else if (ev.type === 'merge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 1.9, r1: ev.r * 0.6, age: 0, ttl: 0.40, color: ev.color, flash: true }); msg = '\u5408\u4f53\u5b8c\u6210'; }
       else if (ev.type === 'thornHit') {
         const hitR = Math.max(8, ev.r || 24), targetR = Math.max(hitR, ev.targetR || hitR * 2.4);
+        this._fx.push({ x: ev.x, y: ev.y, r0: hitR * 0.92, r1: hitR * 0.66, age: 0, ttl: 0.28, color: ev.color || '#76ff45', angle: ev.angle || 0, thornCrush: true });
         this._fx.push({ x: ev.x, y: ev.y, r0: hitR * 0.18, r1: hitR * 1.35, age: 0, ttl: 0.24, color: ev.color || '#76ff45', angle: ev.angle || 0, spike: true, flash: true });
         this._fx.push({ x: ev.x, y: ev.y, r0: targetR * 0.12, r1: targetR * 0.48, age: -0.02, ttl: 0.36, color: ev.color || '#76ff45', angle: ev.angle || 0, impact: true });
         this._fx.push({ x: ev.x, y: ev.y, r0: hitR * 0.28, r1: hitR * 2.1, age: -0.04, ttl: 0.32, color: '#ffffff', angle: ev.angle || 0 });
@@ -729,6 +754,27 @@
       ctx.beginPath(); ctx.arc(f.x, f.y, Math.max(0.5, r), 0, U.TAU);
       ctx.lineWidth = Math.max(1.5, r * 0.14); ctx.strokeStyle = f.color; ctx.stroke();
       if (f.flash) { ctx.globalAlpha = (1 - t) * 0.3; ctx.fillStyle = '#fff'; ctx.fill(); }
+      if (f.thornCrush) {
+        const a = f.angle || 0, crush = 1 - t;
+        ctx.save();
+        ctx.translate(f.x - Math.cos(a) * r * 0.24, f.y - Math.sin(a) * r * 0.24);
+        ctx.rotate(a);
+        ctx.globalAlpha = Math.max(0, 1 - t) * 0.78;
+        ctx.beginPath();
+        const n = 22;
+        for (let i = 0; i < n * 2; i++) {
+          const outer = i % 2 === 0, th = Math.PI * i / n;
+          const pulse = 1 + Math.sin((f.age || 0) * 34 + i * 0.9) * 0.10 * crush;
+          const rr = (outer ? r * 1.12 : r * 0.78) * pulse;
+          const x = Math.cos(th) * rr * (0.62 + 0.24 * t);
+          const y = Math.sin(th) * rr * (1.24 - 0.16 * t);
+          if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = f.color || '#76ff45'; ctx.fill();
+        ctx.lineWidth = Math.max(2, r * 0.07); ctx.strokeStyle = '#d7ff9a'; ctx.stroke();
+        ctx.restore();
+      }
       if (f.spike) {
         const a = f.angle || 0, w = r * 0.28;
         ctx.globalAlpha = (1 - t) * 0.62;
