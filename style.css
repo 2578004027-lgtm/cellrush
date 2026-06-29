@@ -302,3 +302,194 @@ html, body {
 .panel-title { border-radius: 5px; background: linear-gradient(#3b3b3b,#202020); font-weight: 700; }
 .menu-input { border-radius: 4px; background: rgba(255,255,255,.92); color: #222; }
 .room-list, .skill-intro { border-radius: 5px; }
+
+/* cwal-style interaction polish */
+@keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes panelPopIn { from { opacity: 0; transform: translateY(10px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes selectedPulse { 0% { box-shadow: 0 0 0 0 rgba(124,255,176,0.34), var(--select-shadow, 0 0 0 rgba(0,0,0,0)); } 100% { box-shadow: 0 0 0 10px rgba(124,255,176,0), var(--select-shadow, 0 0 0 rgba(0,0,0,0)); } }
+@keyframes triggerFlash { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.44), 0 8px 22px rgba(0,0,0,0.32); } 100% { box-shadow: 0 0 0 14px rgba(255,255,255,0), 0 8px 22px rgba(0,0,0,0.32); } }
+
+.overlay:not(.hidden) { animation: overlayFadeIn .18s ease-out; }
+.overlay:not(.hidden) .shell-panel,
+.overlay:not(.hidden) .settings-panel,
+.overlay:not(.hidden) .dialog-panel,
+.overlay:not(.hidden) .help-panel-box,
+.overlay:not(.hidden) .admin-panel-box { animation: panelPopIn .22s cubic-bezier(.2,.9,.35,1.08); }
+
+.menu-button,
+.profile-btn,
+.profile-save,
+.server-pill,
+.room-list li,
+.settings-nav button,
+.admin-auth button,
+.qq-bind-row button,
+.skill-shop button,
+.admin-panel-head button,
+.admin-panel-actions button,
+.touch-btn,
+#gear {
+  overflow: hidden;
+  transform: translateZ(0);
+  transition: background-color .16s ease, background .16s ease, border-color .16s ease, color .16s ease, filter .16s ease, transform .14s ease, box-shadow .16s ease;
+}
+
+.profile-btn,
+.profile-save,
+.server-pill,
+.room-list li,
+.settings-nav button,
+.admin-auth button,
+.qq-bind-row button,
+.skill-shop button,
+.admin-panel-head button,
+.admin-panel-actions button,
+.touch-btn,
+.dialog-panel .menu-button,
+.settings-content .menu-button,
+.help-panel-box .menu-button {
+  position: relative;
+}
+
+.menu-button::before,
+.profile-btn::before,
+.profile-save::before,
+.server-pill::before,
+.room-list li::before,
+.settings-nav button::before,
+.admin-auth button::before,
+.qq-bind-row button::before,
+.skill-shop button::before,
+.admin-panel-head button::before,
+.admin-panel-actions button::before,
+.touch-btn::before,
+#gear::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.18) 45%, transparent 70%);
+  transform: translateX(-115%);
+  transition: transform .34s ease;
+}
+
+.menu-button:hover::before,
+.profile-btn:hover::before,
+.profile-save:hover::before,
+.server-pill:hover::before,
+.room-list li:hover::before,
+.settings-nav button:hover::before,
+.admin-auth button:hover::before,
+.qq-bind-row button:hover::before,
+.skill-shop button:hover::before,
+.admin-panel-head button:hover::before,
+.admin-panel-actions button:hover::before,
+.touch-btn:hover::before,
+#gear:hover::before { transform: translateX(115%); }
+
+.menu-button:hover,
+.profile-btn:hover,
+.profile-save:hover,
+.server-pill:hover,
+.room-list li:hover,
+.settings-nav button:hover,
+.admin-auth button:hover,
+.qq-bind-row button:hover,
+.skill-shop button:not(:disabled):hover,
+.admin-panel-head button:hover,
+.admin-panel-actions button:hover,
+.touch-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+.menu-button:active,
+.menu-button.is-pressing,
+.profile-btn:active,
+.profile-btn.is-pressing,
+.profile-save:active,
+.profile-save.is-pressing,
+.server-pill:active,
+.server-pill.is-pressing,
+.room-list li:active,
+.room-list li.is-pressing,
+.settings-nav button:active,
+.settings-nav button.is-pressing,
+.admin-auth button:active,
+.admin-auth button.is-pressing,
+.qq-bind-row button:active,
+.qq-bind-row button.is-pressing,
+.skill-shop button:active,
+.skill-shop button.is-pressing,
+.admin-panel-head button:active,
+.admin-panel-head button.is-pressing,
+.admin-panel-actions button:active,
+.admin-panel-actions button.is-pressing,
+.touch-btn:active,
+.touch-btn.is-pressing { transform: translateY(1px) scale(.985); filter: brightness(.96); }
+
+.btn-ripple {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  left: var(--rx, 50%);
+  top: var(--ry, 50%);
+  pointer-events: none;
+  background: rgba(255,255,255,0.48);
+  transform: translate(-50%, -50%) scale(.2);
+  animation: rippleOut .44s ease-out forwards;
+  mix-blend-mode: screen;
+}
+@keyframes rippleOut { to { opacity: 0; transform: translate(-50%, -50%) scale(13); } }
+
+.swatch { position: relative; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, filter .16s ease; }
+.swatch::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 2px solid rgba(124,255,176,0);
+  transition: border-color .16s ease, opacity .16s ease;
+}
+.swatch:hover { filter: brightness(1.08) saturate(1.08); }
+.swatch.sel { --select-shadow: 0 0 14px 6px rgba(0,0,0,0.62), 0 0 0 3px rgba(22,141,232,0.38); animation: selectedPulse .42s ease-out; }
+.swatch.sel::after { border-color: rgba(124,255,176,0.75); }
+.profile-btn.active, .server-pill.active, .room-list li.active, .settings-nav button.active { animation: selectedPulse .38s ease-out; }
+.profile-save.just-picked, .profile-btn.just-picked, .server-pill.just-picked, .room-list li.just-picked, .swatch.just-picked { animation: selectedPulse .42s ease-out; }
+
+.touch-btn.triggered { animation: triggerFlash .2s ease-out; background: rgba(22,141,232,0.92); }
+.touch-btn[data-skill="thorn"].triggered,
+.touch-btn[data-skill="poison"].triggered { background: rgba(49,212,106,0.9); }
+.touch-btn[data-skill="silence"].triggered { background: rgba(138,160,255,0.9); }
+.touch-btn[data-skill="grow"].triggered { background: rgba(124,255,176,0.9); color: #102016; }
+.touch-btn[data-skill="revenge"].triggered { background: rgba(255,107,138,0.9); }
+
+.row { transition: background-color .14s ease; }
+.row:hover { background: rgba(255,255,255,0.035); }
+.row input[type=checkbox]:active::after { transform: scale(.88); }
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay:not(.hidden), .overlay:not(.hidden) .shell-panel, .overlay:not(.hidden) .settings-panel, .overlay:not(.hidden) .dialog-panel, .overlay:not(.hidden) .help-panel-box, .overlay:not(.hidden) .admin-panel-box,
+  .swatch.sel, .profile-btn.active, .server-pill.active, .room-list li.active, .settings-nav button.active, .touch-btn.triggered, .btn-ripple { animation: none; }
+  .menu-button, .profile-btn, .profile-save, .server-pill, .room-list li, .settings-nav button, .admin-auth button, .qq-bind-row button, .skill-shop button, .admin-panel-head button, .admin-panel-actions button, .touch-btn, #gear { transition: none; }
+}
+
+/* cwal keyboard and selected-state polish */
+.menu-button:focus-visible,
+.profile-btn:focus-visible,
+.profile-save:focus-visible,
+.swatch:focus-visible,
+.server-pill:focus-visible,
+.room-list li:focus-visible,
+.settings-nav button:focus-visible,
+.admin-auth button:focus-visible,
+.qq-bind-row button:focus-visible,
+.skill-shop button:focus-visible,
+.admin-panel-head button:focus-visible,
+.admin-panel-actions button:focus-visible,
+.touch-btn:focus-visible,
+#gear:focus-visible {
+  outline: 2px solid rgba(124,255,176,0.9);
+  outline-offset: 2px;
+}
+.server-pill.active { box-shadow: inset 0 0 0 1px rgba(124,255,176,0.28), 0 0 16px rgba(22,141,232,0.16); }
+.room-list li.active { box-shadow: inset 3px 0 0 rgba(124,255,176,0.82); }

@@ -1,7 +1,8 @@
 // CellRush - NetTransport: online WebSocket client with buffered snapshot interpolation.
 (function (G) {
   const EMPTY = { cells: [], food: [], viruses: [], ejected: [], leaderboard: [], players: [], events: [], me: null, world: G.CFG.worldSize, stats: { humans: 0, bots: 0, alive: 0 } };
-  const INTERP_DELAY = 0.075;
+  const MIN_INTERP_DELAY = 0.075;
+  const MAX_INTERP_DELAY = 0.14;
   const MAX_HISTORY = 30;
 
   function nowSec() { return ((performance && performance.now) ? performance.now() : Date.now()) / 1000; }
@@ -79,7 +80,8 @@
     this.latest = EMPTY;
     this.history = [];
     this.entityCache = { food: new Map(), viruses: new Map(), ejected: new Map() };
-    this.stats = { snapHz: 0, jitterMs: 0, bufferMs: Math.round(INTERP_DELAY * 1000), deltaCount: 0 };
+    this._interpDelay = MIN_INTERP_DELAY;
+    this.stats = { snapHz: 0, jitterMs: 0, bufferMs: Math.round(this._interpDelay * 1000), deltaCount: 0 };
     this._clockOffset = null;
     this._lastSnapAt = 0;
     this._snapIntervals = [];
@@ -112,6 +114,9 @@
       const variance = this._snapIntervals.reduce((a, b) => a + (b - avg) * (b - avg), 0) / this._snapIntervals.length;
       this.stats.snapHz = avg > 0 ? Math.round(1000 / avg) : 0;
       this.stats.jitterMs = Math.round(Math.sqrt(variance));
+      const targetDelay = Math.min(MAX_INTERP_DELAY, Math.max(MIN_INTERP_DELAY, MIN_INTERP_DELAY + this.stats.jitterMs / 1000 * 1.2));
+      this._interpDelay += (targetDelay - this._interpDelay) * 0.12;
+      this.stats.bufferMs = Math.round(this._interpDelay * 1000);
     }
     this._lastSnapAt = t;
     if (typeof serverTime === 'number') {
@@ -205,7 +210,7 @@
   };
   NetTransport.prototype.getSnapshot = function () {
     if (!this.history.length || this._clockOffset == null) return this._consumeEvents(cloneSnap(this.latest || EMPTY, this.stats), this.latest);
-    const target = nowSec() - this._clockOffset - INTERP_DELAY;
+    const target = nowSec() - this._clockOffset - (this._interpDelay || MIN_INTERP_DELAY);
     let a = null, b = null;
     for (let i = 0; i < this.history.length; i++) {
       const s = this.history[i];

@@ -20,7 +20,23 @@
     const ae = document.activeElement;
     return ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA');
   }
+  function pulseButton(btn) {
+    btn.classList.remove('triggered');
+    void btn.offsetWidth;
+    btn.classList.add('triggered');
+    clearTimeout(btn._crTriggerTimer);
+    btn._crTriggerTimer = setTimeout(() => btn.classList.remove('triggered'), 220);
+  }
+  function flashControl(selector) {
+    const btn = document.querySelector(selector);
+    if (btn) pulseButton(btn);
+  }
   function fireButton(btn) {
+    const now = (window.performance && window.performance.now) ? window.performance.now() : Date.now();
+    const last = Number(btn.dataset.fireAt || 0);
+    if (now - last < 90) return;
+    btn.dataset.fireAt = String(now);
+    pulseButton(btn);
     const action = btn.dataset.action;
     const skill = btn.dataset.skill;
     if (action === 'split') Input._split = Math.max(Input._split, 1);
@@ -99,18 +115,18 @@
     window.addEventListener('keydown', (e) => {
       if (isTextInput()) return;
 
-      if (e.code === 'Space') { Input._split = Math.max(Input._split, e.ctrlKey || e.altKey ? 4 : (e.shiftKey ? 2 : 1)); e.preventDefault(); return; }
+      if (e.code === 'Space') { const count = e.ctrlKey || e.altKey ? 4 : (e.shiftKey ? 2 : 1); Input._split = Math.max(Input._split, count); flashControl(count === 2 ? '[data-action="split2"]' : '[data-action="split"]'); e.preventDefault(); return; }
       if (e.key === 'Tab') { Input._showScoreboard = true; e.preventDefault(); return; }
       if (e.key === 'ArrowRight' || e.key === 'PageDown') { Input._spectateDir = 1; e.preventDefault(); return; }
       if (e.key === 'ArrowLeft' || e.key === 'PageUp') { Input._spectateDir = -1; e.preventDefault(); return; }
       const k = e.key.toLowerCase();
-      if (k === 'w') { Input._eject = Math.max(Input._eject, 1); Input._ejectHeld = true; return; }
-      if (k === 'g') { Input._signal = true; e.preventDefault(); return; }
+      if (k === 'w') { Input._eject = Math.max(Input._eject, 1); Input._ejectHeld = true; flashControl('[data-action="eject"]'); return; }
+      if (k === 'g') { Input._signal = true; flashControl('[data-action="signal"]'); e.preventDefault(); return; }
       if (k === 'n') { Input._spectateDir = 1; e.preventDefault(); return; }
       if (k === 'b') { Input._spectateDir = -1; e.preventDefault(); return; }
       if (k === 's') { Input._pauseToggle = true; e.preventDefault(); return; }
       if (k === 'l') { Input._lockMove = !Input._lockMove; Input._lockedAim = null; e.preventDefault(); return; }
-      if (SKILL_KEYS[k]) { Input._skill = SKILL_KEYS[k]; return; }
+      if (SKILL_KEYS[k]) { Input._skill = SKILL_KEYS[k]; flashControl('[data-skill="' + SKILL_KEYS[k] + '"]'); return; }
       if (k === ']' || k === '=' ) { Input._adminGrow = true; return; }
       if (k === '[' || k === '-') { Input._adminShrink = true; return; }
     });

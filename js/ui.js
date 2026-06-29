@@ -253,6 +253,7 @@
     this.initChat();
     this.initSettingsTabs();
     this.initRoomStatus();
+    this.initButtonFx();
     const helpClose = document.getElementById('help-close');
     if (helpClose) helpClose.addEventListener('click', () => this.closeHelp());
 
@@ -281,22 +282,101 @@
     });
   };
 
+  UI.bump = function (el, className, ms) {
+    if (!el) return;
+    className = className || 'just-picked';
+    ms = ms || 420;
+    el.classList.remove(className);
+    void el.offsetWidth;
+    el.classList.add(className);
+    clearTimeout(el._crBumpTimer);
+    el._crBumpTimer = setTimeout(() => el.classList.remove(className), ms);
+  };
+
+  UI.initButtonFx = function () {
+    if (this._buttonFxReady) return;
+    this._buttonFxReady = true;
+    const selector = '.menu-button, .profile-btn, .profile-save, .swatch, .server-pill, .room-list li, .settings-nav button, .admin-auth button, .qq-bind-row button, .skill-shop button, .admin-panel-head button, .admin-panel-actions button, .touch-btn, #gear';
+    const find = (target) => target && target.closest ? target.closest(selector) : null;
+    const clearPress = (el) => { if (el) el.classList.remove('is-pressing'); };
+    const clearAllPress = () => document.querySelectorAll('.is-pressing').forEach((el) => el.classList.remove('is-pressing'));
+    const rippleAt = (el, x, y) => {
+      const r = el.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      ripple.className = 'btn-ripple';
+      ripple.style.setProperty('--rx', ((x == null ? r.left + r.width / 2 : x) - r.left) + 'px');
+      ripple.style.setProperty('--ry', ((y == null ? r.top + r.height / 2 : y) - r.top) + 'px');
+      el.appendChild(ripple);
+      ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+    };
+    document.addEventListener('pointerdown', (e) => {
+      const el = find(e.target);
+      if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
+      el.classList.add('is-pressing');
+      rippleAt(el, e.clientX, e.clientY);
+    }, { passive: true });
+    document.addEventListener('pointerup', clearAllPress, { passive: true });
+    document.addEventListener('pointercancel', clearAllPress, { passive: true });
+    window.addEventListener('blur', clearAllPress);
+    document.addEventListener('keydown', (e) => {
+      if (e.repeat || (e.key !== 'Enter' && e.key !== ' ')) return;
+      const el = find(e.target);
+      if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
+      el.classList.add('is-pressing');
+      rippleAt(el);
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') clearPress(find(e.target));
+    });
+    document.addEventListener('click', (e) => {
+      const el = find(e.target);
+      if (!el || el.disabled) return;
+      if (el.classList.contains('server-pill')) {
+        el.parentElement && el.parentElement.querySelectorAll('.server-pill').forEach((b) => {
+          const on = b === el;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+      }
+      if (el.classList.contains('swatch') || el.classList.contains('profile-btn') || el.classList.contains('profile-save') || el.classList.contains('server-pill') || (el.matches && el.matches('.room-list li'))) this.bump(el);
+    });
+  };
   UI.escapeHtml = function (s) {
     return ('' + (s || '')).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   };
 
+  UI.selectRoom = function (li) {
+    if (!this.roomList || !li) return;
+    this.roomList.querySelectorAll('li').forEach((x) => {
+      const on = x === li;
+      x.classList.toggle('active', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    const theme = li.dataset.theme || '';
+    if (theme) {
+      G.settings.mapTheme = theme;
+      const sel = document.getElementById('set-map-theme');
+      if (sel) sel.value = theme;
+      try { localStorage.setItem('cr_mapTheme', theme); } catch (e) { /* ignore */ }
+    }
+  };
+
   UI.initRoomStatus = function () {
-    if (this.roomList) this.roomList.querySelectorAll('li').forEach((li) => li.addEventListener('click', () => {
-      this.roomList.querySelectorAll('li').forEach((x) => x.classList.remove('active'));
-      li.classList.add('active');
-      const theme = li.dataset.theme || '';
-      if (theme) {
-        G.settings.mapTheme = theme;
-        const sel = document.getElementById('set-map-theme');
-        if (sel) sel.value = theme;
-        try { localStorage.setItem('cr_mapTheme', theme); } catch (e) { /* ignore */ }
-      }
-    }));
+    document.querySelectorAll('.server-pill').forEach((pill) => {
+      pill.setAttribute('aria-pressed', pill.classList.contains('active') ? 'true' : 'false');
+    });
+    if (this.roomList) this.roomList.querySelectorAll('li').forEach((li) => {
+      li.tabIndex = 0;
+      li.setAttribute('role', 'button');
+      li.setAttribute('aria-pressed', li.classList.contains('active') ? 'true' : 'false');
+      li.addEventListener('click', () => this.selectRoom(li));
+      li.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        this.selectRoom(li);
+        this.bump(li);
+      });
+    });
     const activeRoom = this.roomList && this.roomList.querySelector('li.active[data-theme]');
     if (activeRoom && activeRoom.dataset.theme) {
       G.settings.mapTheme = activeRoom.dataset.theme;

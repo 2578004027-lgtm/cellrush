@@ -1,20 +1,43 @@
 // Headless smoke test of the pure simulation (no DOM). Run with: node test_sim.js
 global.window = global;        // browser semantics: window === global, so bare `G` resolves
 const fs = require('fs');
-['config', 'util', 'world', 'bots', 'transport'].forEach((n) => {
+['config', 'util', 'world', 'bots'].forEach((n) => {
   eval(fs.readFileSync(__dirname + '/js/' + n + '.js', 'utf8'));
 });
 const api = global.window.G;
 
-const t = new api.LocalTransport({ name: 'tester', color: api.util.colorFromHue(200) });
+function botSkin() {
+  const skins = (api.CFG.skinPresets || []).filter(Boolean);
+  return skins.length ? api.util.pick(skins) : '';
+}
+
+function fullView() {
+  return { x0: -1e9, y0: -1e9, x1: 1e9, y1: 1e9 };
+}
+
+const world = new api.World();
+for (let i = 0; i < api.CFG.botCount; i++) {
+  world.addPlayer({
+    name: api.Bots.name(),
+    color: api.util.randColor(),
+    skin: botSkin(),
+    isBot: true,
+    startMass: api.CFG.botStartMass || 50,
+  });
+}
+world.addPlayer({ id: 'you', name: 'tester', color: api.util.colorFromHue(200), isBot: false });
+
 let everSplit = false, startMass = 0, dashCdSeen = false, massBeforeAdmin = 0, adminCd0 = false, mergeUsed = false;
 for (let i = 0; i < 900; i++) {
-  const me = t.world.players.get('you');
+  const me = world.players.get('you');
   if (!me.alive) break;
   const c = me.cells[0];
   // chase nearest food so the cell actually grows
   let bx = c.x, by = c.y, bd = 1e18;
-  for (const f of t.world.food) { const d = (f.x - c.x) ** 2 + (f.y - c.y) ** 2; if (d < bd) { bd = d; bx = f.x; by = f.y; } }
+  for (const f of world.food) {
+    const d = (f.x - c.x) ** 2 + (f.y - c.y) ** 2;
+    if (d < bd) { bd = d; bx = f.x; by = f.y; }
+  }
   const mass = me.cells.reduce((s, k) => s + k.mass, 0);
   if (i === 0) startMass = mass;
 
@@ -33,21 +56,28 @@ for (let i = 0; i < 900; i++) {
     eject: i === 300 && mass > 40,
     skill, adminGrow: admin && i % 40 === 0,
   };
-  t.tick(1 / 30, inp);
 
-  const meNow = t.world.players.get('you');
+  for (const b of world.players.values()) {
+    if (!b.isBot) continue;
+    if (!b.alive) world.spawnPlayer(b);
+    else world.applyInput(b.id, api.Bots.think(world, b));
+  }
+  world.applyInput('you', inp);
+  world.step(1 / 30);
+
+  const meNow = world.players.get('you');
   if (meNow.cells.length > 1) everSplit = true;
-  if (i === 105 && t.world.time < meNow.cd.dash) dashCdSeen = true;   // dash went on cooldown
-  if (i === 195 && t.world.time < meNow.cd.merge) mergeUsed = true;   // merge skill registered
-  if (i === 610 && meNow.cd.dash === 0) adminCd0 = true;              // admin: no cooldown
+  if (i === 105 && world.time < meNow.cd.dash) dashCdSeen = true;   // dash went on cooldown
+  if (i === 195 && world.time < meNow.cd.merge) mergeUsed = true;   // merge skill registered
+  if (i === 610 && meNow.cd.dash === 0) adminCd0 = true;            // admin: no cooldown
 }
 
-const me = t.world.players.get('you');
+const me = world.players.get('you');
 const myMass = me.cells.reduce((s, c) => s + c.mass, 0);
 console.log('me: alive=%s cells=%d mass=%s maxMass=%d', me.alive, me.cells.length, myMass.toFixed(1), Math.floor(me.maxMass));
-console.log('world: players=%d food=%d viruses=%d ejected=%d', t.world.players.size, t.world.food.length, t.world.viruses.length, t.world.ejected.length);
+console.log('world: players=%d food=%d viruses=%d ejected=%d', world.players.size, world.food.length, world.viruses.length, world.ejected.length);
 
-const snap = t.getSnapshot({ x0: -1e9, y0: -1e9, x1: 1e9, y1: 1e9 });
+const snap = world.buildSnapshot('you', fullView());
 console.log('snapshot: cells=%d food=%d viruses=%d leaderboard=%d me=%s players=%d',
   snap.cells.length, snap.food.length, snap.viruses.length, snap.leaderboard.length, !!snap.me, snap.players.length);
 
@@ -64,10 +94,11 @@ if (!snap.me || !snap.me.admin) bad.push('admin flag not in snapshot');
 if (!(myMass > massBeforeAdmin)) bad.push('admin grow did not increase mass');
 if (snap.food.length === 0) bad.push('no food');
 if (snap.leaderboard.length === 0) bad.push('empty leaderboard');
-if (t.world.players.size !== api.CFG.botCount + 1) bad.push('player count wrong: ' + t.world.players.size);
+if (world.players.size !== api.CFG.botCount + 1) bad.push('player count wrong: ' + world.players.size);
 if (snap.leaderboard.some((e) => isNaN(e.mass))) bad.push('NaN in leaderboard');
 if (me.cells.some((c) => isNaN(c.x) || isNaN(c.y) || isNaN(c.mass))) bad.push('NaN in player cells');
 
 console.log('grew %d -> %d, everSplit=%s, dashCd=%s, admin=%s', Math.floor(startMass), Math.floor(myMass), everSplit, dashCdSeen, !!(snap.me && snap.me.admin));
 console.log('skills:', snap.me && snap.me.skills ? snap.me.skills.map((s) => s.key + '(' + s.remain.toFixed(1) + 's)').join(' ') : 'none');
 console.log(bad.length ? 'FAIL: ' + bad.join('; ') : 'PASS: eat/grow/split/skills/admin all working');
+process.exit(bad.length ? 1 : 0);
