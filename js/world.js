@@ -5,6 +5,17 @@
 
   const radius = (m) => Math.sqrt(m / Math.PI) * CFG.massToRadius;
   const speed = (m) => U.clamp(CFG.speedBase * Math.pow(m, CFG.speedExp), CFG.speedMin, CFG.speedMax);
+  const circleCoverRatio = (outerR, innerR, d) => {
+    if (innerR <= 0) return 1;
+    if (d + innerR <= outerR) return 1;
+    if (d >= outerR + innerR) return 0;
+    if (d <= Math.abs(outerR - innerR)) return outerR >= innerR ? 1 : (outerR * outerR) / (innerR * innerR);
+    const inner2 = innerR * innerR, outer2 = outerR * outerR, d2 = d * d;
+    const a = Math.acos(U.clamp((d2 + inner2 - outer2) / (2 * d * innerR), -1, 1));
+    const b = Math.acos(U.clamp((d2 + outer2 - inner2) / (2 * d * outerR), -1, 1));
+    const cross = Math.sqrt(Math.max(0, (-d + innerR + outerR) * (d + innerR - outerR) * (d - innerR + outerR) * (d + innerR + outerR)));
+    return U.clamp((inner2 * a + outer2 * b - cross * 0.5) / (Math.PI * inner2), 0, 1);
+  };
   G.radius = radius;
   G.speed = speed;
 
@@ -468,9 +479,10 @@
           if (!(cp && cp.admin)) this._popCell(c, hitAngle, 1.35);
           continue;
         }
-        if (c.mass > v.mass * 1.15 && dcv < r - vr * 0.6) {
+        const cover = circleCoverRatio(r, vr, dcv);
+        if (c.mass > v.mass * 1.15 && cover >= (CFG.virusEatCoverage || 0.85)) {
           c.mass += v.mass; v._dead = true; virusPopped = true;
-          this.events.push({ type: 'pop', x: c.x, y: c.y, r: radius(c.mass), color: '#7be37b', angle: Math.atan2(c.vy || 0, c.vx || 0) });
+          this.events.push({ type: 'pop', x: c.x, y: c.y, r: radius(c.mass), color: '#7be37b', angle: Math.atan2(c.vy || 0, c.vx || 0), coverage: cover });
           if (!(cp && cp.admin)) this._popCell(c, Math.atan2(c.vy || 0, c.vx || 0), 1.0);
         }
       }

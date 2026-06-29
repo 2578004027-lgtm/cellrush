@@ -653,25 +653,43 @@
     const classic = (G.settings.mapTheme || 'classic') === 'classic';
     const spikes = classic ? 28 : 20, r = v.r, ir = r * (classic ? 0.82 : 0.86);
     const moving = v.kind === 'thorn' || Math.hypot(v.vx || 0, v.vy || 0) > 20;
+    const thorn = v.kind === 'thorn';
+    const now = (performance.now() || 0) * 0.001;
     const motionAngle = Math.atan2(v.vy || 0, v.vx || 0);
     const fixedThornAngle = (typeof v.angle === 'number' && Number.isFinite(v.angle)) ? v.angle : motionAngle;
-    const a0 = v.kind === 'thorn' ? fixedThornAngle : (moving ? motionAngle + (performance.now() || 0) * 0.006 : 0);
+    const a0 = thorn ? fixedThornAngle : (moving ? motionAngle + now * 6 : 0);
     ctx.save();
     if (moving) {
-      const a = Math.atan2(v.vy || 0, v.vx || 0), tail = Math.min(r * 1.9, Math.hypot(v.vx || 0, v.vy || 0) * 0.018);
+      const a = Math.atan2(v.vy || 0, v.vx || 0), spd = Math.hypot(v.vx || 0, v.vy || 0);
+      const tail = Math.min(r * (thorn ? 2.55 : 1.9), spd * (thorn ? 0.026 : 0.018));
       const g = ctx.createLinearGradient(v.x - Math.cos(a) * tail, v.y - Math.sin(a) * tail, v.x, v.y);
-      g.addColorStop(0, 'rgba(80,235,118,0)'); g.addColorStop(1, 'rgba(80,235,118,0.28)');
-      ctx.strokeStyle = g; ctx.lineWidth = Math.max(4, r * 0.18); ctx.beginPath(); ctx.moveTo(v.x - Math.cos(a) * tail, v.y - Math.sin(a) * tail); ctx.lineTo(v.x, v.y); ctx.stroke();
+      g.addColorStop(0, 'rgba(80,235,118,0)'); g.addColorStop(0.52, thorn ? 'rgba(118,255,69,0.16)' : 'rgba(80,235,118,0.12)'); g.addColorStop(1, thorn ? 'rgba(175,255,125,0.42)' : 'rgba(80,235,118,0.28)');
+      ctx.strokeStyle = g; ctx.lineWidth = Math.max(4, r * (thorn ? 0.26 : 0.18)); ctx.beginPath(); ctx.moveTo(v.x - Math.cos(a) * tail, v.y - Math.sin(a) * tail); ctx.lineTo(v.x, v.y); ctx.stroke();
+    }
+    if (thorn) {
+      const glow = ctx.createRadialGradient(v.x, v.y, r * 0.18, v.x, v.y, r * 1.45);
+      glow.addColorStop(0, 'rgba(190,255,120,0.30)'); glow.addColorStop(1, 'rgba(118,255,69,0)');
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(v.x, v.y, r * 1.45, 0, U.TAU); ctx.fill();
     }
     ctx.beginPath();
     for (let i = 0; i < spikes * 2; i++) {
-      const ang = a0 + Math.PI * i / spikes, rr = (i % 2) ? ir : r * (classic ? 1.12 : 1.05);
+      const outer = i % 2 === 0;
+      const ang = a0 + Math.PI * i / spikes;
+      const wave = thorn ? Math.sin(now * 16 + i * 0.82) : 0;
+      const front = thorn ? Math.cos(ang - fixedThornAngle) : 0;
+      const thornPulse = thorn && outer ? (1 + 0.10 * wave + 0.08 * Math.max(0, front)) : 1;
+      const rr = outer ? r * (classic ? 1.12 : 1.05) * thornPulse : ir * (thorn ? (0.95 + 0.04 * wave) : 1);
       const x = v.x + Math.cos(ang) * rr, y = v.y + Math.sin(ang) * rr;
       if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
     }
     ctx.closePath();
-    ctx.fillStyle = classic ? '#33dd33' : 'rgba(80,235,118,0.86)'; ctx.fill();
-    ctx.lineWidth = Math.max(2, r * (classic ? 0.055 : 0.045)); ctx.strokeStyle = classic ? '#199b24' : 'rgba(30,150,70,0.95)'; ctx.stroke();
+    ctx.fillStyle = thorn ? '#76ff45' : (classic ? '#33dd33' : 'rgba(80,235,118,0.86)'); ctx.fill();
+    ctx.lineWidth = Math.max(2, r * (classic ? 0.055 : 0.045)); ctx.strokeStyle = thorn ? '#d7ff9a' : (classic ? '#199b24' : 'rgba(30,150,70,0.95)'); ctx.stroke();
+    if (thorn) {
+      ctx.globalAlpha = 0.50 + 0.18 * Math.sin(now * 18);
+      ctx.fillStyle = '#e8ffc6';
+      ctx.beginPath(); ctx.ellipse(v.x + Math.cos(fixedThornAngle) * r * 0.24, v.y + Math.sin(fixedThornAngle) * r * 0.24, r * 0.22, r * 0.10, fixedThornAngle, 0, U.TAU); ctx.fill();
+    }
     ctx.restore();
   };
   // turn sim events into transient ring effects

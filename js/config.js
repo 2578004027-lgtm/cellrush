@@ -56,6 +56,7 @@ G.CFG = {
   virusCount: 18,
   virusFeedShoot: 7,         // ejected hits to make a virus shoot a new one
   virusShootSpeed: 880,
+  virusEatCoverage: 0.85,     // eat/pop a virus once about 85% of it is covered
 
   // cohesion / friction
   cohesion: 1.05,            // how strongly merge-ready cells drift back together
