@@ -611,7 +611,9 @@
     const classic = (G.settings.mapTheme || 'classic') === 'classic';
     const spikes = classic ? 28 : 20, r = v.r, ir = r * (classic ? 0.82 : 0.86);
     const moving = v.kind === 'thorn' || Math.hypot(v.vx || 0, v.vy || 0) > 20;
-    const a0 = moving ? Math.atan2(v.vy || 0, v.vx || 0) + (performance.now() || 0) * 0.006 : 0;
+    const motionAngle = Math.atan2(v.vy || 0, v.vx || 0);
+    const fixedThornAngle = (typeof v.angle === 'number' && Number.isFinite(v.angle)) ? v.angle : motionAngle;
+    const a0 = v.kind === 'thorn' ? fixedThornAngle : (moving ? motionAngle + (performance.now() || 0) * 0.006 : 0);
     ctx.save();
     if (moving) {
       const a = Math.atan2(v.vy || 0, v.vx || 0), tail = Math.min(r * 1.9, Math.hypot(v.vx || 0, v.vy || 0) * 0.018);
@@ -637,7 +639,14 @@
       let msg = null;
       if (ev.type === 'split') continue;
       else if (ev.type === 'merge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 1.9, r1: ev.r * 0.6, age: 0, ttl: 0.40, color: ev.color, flash: true }); msg = '\u5408\u4f53\u5b8c\u6210'; }
-      else if (ev.type === 'pop') { for (let i = 0; i < 4; i++) this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.35, r1: ev.r * (1.8 + i * 0.55), age: -i * 0.045, ttl: 0.62, color: ev.color, angle: ev.angle || 0 }); msg = '\u7eff\u523a\u7206\u5f00'; }
+      else if (ev.type === 'thornHit') {
+        const hitR = Math.max(8, ev.r || 24), targetR = Math.max(hitR, ev.targetR || hitR * 2.4);
+        this._fx.push({ x: ev.x, y: ev.y, r0: hitR * 0.18, r1: hitR * 1.35, age: 0, ttl: 0.24, color: ev.color || '#76ff45', angle: ev.angle || 0, spike: true, flash: true });
+        this._fx.push({ x: ev.x, y: ev.y, r0: targetR * 0.12, r1: targetR * 0.48, age: -0.02, ttl: 0.36, color: ev.color || '#76ff45', angle: ev.angle || 0, impact: true });
+        this._fx.push({ x: ev.x, y: ev.y, r0: hitR * 0.28, r1: hitR * 2.1, age: -0.04, ttl: 0.32, color: '#ffffff', angle: ev.angle || 0 });
+        msg = '\u7eff\u523a\u547d\u4e2d';
+      }
+      else if (ev.type === 'pop') { const rings = ev.quiet ? 2 : 4, base = ev.quiet ? 1.05 : 1.8, step = ev.quiet ? 0.32 : 0.55; for (let i = 0; i < rings; i++) this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.35, r1: ev.r * (base + i * step), age: -i * 0.045, ttl: ev.quiet ? 0.44 : 0.62, color: ev.color, angle: ev.angle || 0 }); if (!ev.quiet) msg = '\u7eff\u523a\u7206\u5f00'; }
       else if (ev.type === 'revenge') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.7, r1: ev.r * 2.2, age: 0, ttl: 0.45, color: ev.color }); msg = '\u53cd\u566c\u6210\u529f'; }
       else if (ev.type === 'grow') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.5, r1: ev.r * 1.8, age: 0, ttl: 0.55, color: ev.color }); msg = '\u53d8\u5927'; }
       else if (ev.type === 'thorn' || ev.type === 'thornShoot') { this._fx.push({ x: ev.x, y: ev.y, r0: ev.r * 0.35, r1: ev.r * 1.45, age: 0, ttl: 0.30, color: ev.color, angle: ev.angle || 0 }); msg = '\u5410\u523a'; }
@@ -660,16 +669,33 @@
       ctx.beginPath(); ctx.arc(f.x, f.y, Math.max(0.5, r), 0, U.TAU);
       ctx.lineWidth = Math.max(1.5, r * 0.14); ctx.strokeStyle = f.color; ctx.stroke();
       if (f.flash) { ctx.globalAlpha = (1 - t) * 0.3; ctx.fillStyle = '#fff'; ctx.fill(); }
+      if (f.spike) {
+        const a = f.angle || 0, w = r * 0.28;
+        ctx.globalAlpha = (1 - t) * 0.62;
+        ctx.fillStyle = f.color;
+        ctx.beginPath();
+        ctx.moveTo(f.x + Math.cos(a) * r * 1.02, f.y + Math.sin(a) * r * 1.02);
+        ctx.lineTo(f.x - Math.cos(a) * r * 0.38 + Math.cos(a + Math.PI / 2) * w, f.y - Math.sin(a) * r * 0.38 + Math.sin(a + Math.PI / 2) * w);
+        ctx.lineTo(f.x - Math.cos(a) * r * 0.38 + Math.cos(a - Math.PI / 2) * w, f.y - Math.sin(a) * r * 0.38 + Math.sin(a - Math.PI / 2) * w);
+        ctx.closePath(); ctx.fill();
+      }
       if (typeof f.angle === 'number') {
         const a = f.angle;
-        ctx.globalAlpha = (1 - t) * 0.46;
+        ctx.globalAlpha = (1 - t) * (f.impact ? 0.62 : 0.46);
         ctx.strokeStyle = f.color;
-        ctx.lineWidth = Math.max(2, r * 0.08);
+        ctx.lineWidth = Math.max(2, r * (f.impact ? 0.10 : 0.08));
         ctx.beginPath();
         ctx.moveTo(f.x - Math.cos(a) * r * 0.25, f.y - Math.sin(a) * r * 0.25);
         ctx.lineTo(f.x + Math.cos(a) * r * 0.92, f.y + Math.sin(a) * r * 0.92);
         ctx.moveTo(f.x + Math.cos(a + 2.55) * r * 0.55, f.y + Math.sin(a + 2.55) * r * 0.55);
         ctx.lineTo(f.x + Math.cos(a - 2.55) * r * 0.55, f.y + Math.sin(a - 2.55) * r * 0.55);
+        if (f.impact) {
+          for (let i = -2; i <= 2; i++) {
+            const da = a + i * 0.34;
+            ctx.moveTo(f.x + Math.cos(da) * r * 0.20, f.y + Math.sin(da) * r * 0.20);
+            ctx.lineTo(f.x + Math.cos(da) * r * (0.74 + Math.abs(i) * 0.08), f.y + Math.sin(da) * r * (0.74 + Math.abs(i) * 0.08));
+          }
+        }
         ctx.stroke();
       }
       ctx.restore();

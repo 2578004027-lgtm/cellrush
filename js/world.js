@@ -459,9 +459,13 @@
         const vr = radius(v.mass);
         const dcv = U.dist(c.x, c.y, v.x, v.y);
         if (v.kind === 'thorn' && v.ownerId !== c.ownerId && dcv < r + vr * 0.72) {
+          const hitAngle = Math.atan2(v.vy || (c.y - v.y), v.vx || (c.x - v.x));
+          const hx = c.x - Math.cos(hitAngle) * Math.max(0, r - vr * 0.35);
+          const hy = c.y - Math.sin(hitAngle) * Math.max(0, r - vr * 0.35);
           v._dead = true; virusPopped = true;
-          this.events.push({ type: 'pop', x: c.x, y: c.y, r: radius(c.mass), color: '#7be37b', angle: Math.atan2(v.vy || 0, v.vx || 0) });
-          if (!(cp && cp.admin)) this._popCell(c, Math.atan2(v.vy || 0, v.vx || 0), 1.35);
+          this.events.push({ type: 'thornHit', x: hx, y: hy, r: Math.max(vr, r * 0.22), targetR: r, color: '#76ff45', angle: hitAngle });
+          this.events.push({ type: 'pop', x: c.x, y: c.y, r: radius(c.mass), color: '#7be37b', angle: hitAngle, quiet: true });
+          if (!(cp && cp.admin)) this._popCell(c, hitAngle, 1.35);
           continue;
         }
         if (c.mass > v.mass * 1.15 && dcv < r - vr * 0.6) {
